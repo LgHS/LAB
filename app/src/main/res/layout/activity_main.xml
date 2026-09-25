@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<be.lghs.lab.ui.DashboardLayout xmlns:android="http://schemas.android.com/apk/res/android"
+   
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg"
+    android:keepScreenOn="true">
+
+    <ImageView
+        android:id="@+id/wallpaper"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="centerCrop"
+        android:src="@drawable/wallpaper" />
+
+    <be.lghs.lab.CameraTileView
+        android:id="@+id/tile_porte"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+    <include
+        android:id="@+id/panel_info"
+        layout="@layout/panel_info" />
+
+    <include
+        android:id="@+id/panel_transport"
+        layout="@layout/panel_transport" />
+
+    <!-- Dernier enfant = dessiné au-dessus -->
+    <be.lghs.lab.CameraTileView
+        android:id="@+id/tile_sas"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:elevation="16dp" />
+</be.lghs.lab.ui.DashboardLayout>

@@ -1,0 +1,21 @@
+{
+  "gtfsStart": "20260918",
+  "validUntil": "20261217",
+  "stops": [
+    "Llgbavi0",
+    "Llgbavi1",
+    "Llgbavi3",
+    "Llgbavi4",
+    "Llgongr1",
+    "Llgongr2",
+    "Llgongr3",
+    "Llgongr4",
+    "Llgoutr1",
+    "Llgoutr2",
+    "Llgoutr3",
+    "Llgsime1",
+    "Llgsime2",
+    "Llgtcha1",
+    "Llgtcha2"
+  ]
+}

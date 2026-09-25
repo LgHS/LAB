@@ -1,0 +1,134 @@
+{
+  "_doc": "Départs affichés par le tableau de bord LgHS. Modifier puis pousser : la GitHub Action régénère les horaires TEC, l'app se met à jour dans l'heure.",
+  "tec": {
+    "_doc": "Quais TEC (stop_id GTFS ; un quai = un sens). Ordre = priorité : un bus passant par plusieurs quais est affiché au premier où sa ligne est listée. lines : lignes affichées à ce quai → libellé de destination ; une ligne absente n'est pas affichée à ce quai.",
+    "windowMinutes": 15,
+    "stops": [
+      {
+        "id": "Llgsime1",
+        "name": "Simenon",
+        "lines": {
+          "11": "Liège Expo"
+        }
+      },
+      {
+        "id": "Llgsime2",
+        "name": "Simenon",
+        "lines": {
+          "11": "Rocourt"
+        }
+      },
+      {
+        "id": "Llgongr3",
+        "name": "Congrès",
+        "lines": {
+          "11": "Liège Expo"
+        }
+      },
+      {
+        "id": "Llgongr1",
+        "name": "Congrès",
+        "lines": {
+          "6": "Coronmeuse"
+        }
+      },
+      {
+        "id": "Llgongr2",
+        "name": "Congrès",
+        "lines": {
+          "6": "Guillemins"
+        }
+      },
+      {
+        "id": "Llgongr4",
+        "name": "Congrès",
+        "lines": {
+          "11": "Rocourt"
+        }
+      },
+      {
+        "id": "Llgbavi3",
+        "name": "Bavière",
+        "lines": {
+          "38": "Grivegnée"
+        }
+      },
+      {
+        "id": "Llgbavi4",
+        "name": "Bavière",
+        "lines": {
+          "38": "Fond des Tawes",
+          "33": "Milmort",
+          "73": "Centre"
+        }
+      },
+      {
+        "id": "Llgoutr1",
+        "name": "Outremeuse",
+        "lines": {
+          "6": "Coronmeuse"
+        }
+      },
+      {
+        "id": "Llgoutr2",
+        "name": "Outremeuse",
+        "lines": {
+          "6": "Guillemins"
+        }
+      },
+      {
+        "id": "Llgbavi1",
+        "name": "Bavière",
+        "lines": {
+          "6": "Coronmeuse"
+        }
+      },
+      {
+        "id": "Llgoutr3",
+        "name": "Outremeuse",
+        "lines": {
+          "4": "Léopold",
+          "24": "Léopold"
+        }
+      },
+      {
+        "id": "Llgtcha2",
+        "name": "Tchantchès",
+        "lines": {
+          "4": "Léopold",
+          "24": "Léopold"
+        }
+      },
+      {
+        "id": "Llgbavi0",
+        "name": "Bavière",
+        "lines": {
+          "6": "Guillemins",
+          "39": "Vottem P+R"
+        }
+      },
+      {
+        "id": "Llgtcha1",
+        "name": "Tchantchès",
+        "lines": {
+          "4": "Fléron",
+          "24": "Jupille"
+        }
+      }
+    ]
+  },
+  "sncb": {
+    "_doc": "Trains directs entre deux gares (noms iRail : https://api.irail.be/stations/?format=json&lang=fr).",
+    "departuresPerRoute": 3,
+    "routes": [
+      {
+        "from": "Liège-Saint-Lambert",
+        "to": "Nessonvaux"
+      },
+      {
+        "from": "Liège-Guillemins",
+        "to": "Welkenraedt"
+      }
+    ]
+  }
+}

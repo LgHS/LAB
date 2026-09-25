@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Little Android Brother</string>
+    <string name="status_connecting">Connexion…</string>
+    <string name="status_reconnecting">Reconnexion…</string>
+</resources>

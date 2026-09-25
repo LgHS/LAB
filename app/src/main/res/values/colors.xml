@@ -1,0 +1,12 @@
+<resources>
+    <color name="bg">#0B0C0F</color>
+    <color name="card">#CC101217</color>
+    <color name="text">#F2F3F5</color>
+    <color name="text_dim">#9AA0AA</color>
+    <color name="text_faint">#646A74</color>
+    <color name="accent">#F5C518</color>
+    <color name="late">#FF6B5E</color>
+    <color name="ontime">#5FD38D</color>
+    <color name="tec">#F5C518</color>
+    <color name="sncb">#2F6FD6</color>
+</resources>
