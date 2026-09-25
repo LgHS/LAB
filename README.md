@@ -18,9 +18,12 @@ Réglages privés dans `local.properties` (ignoré par git, jamais dans ce dép�
 tec.apiKey=…                          # clé GTFS-RT TEC (https://gtfsrt.tectime.be)
 camera.porte=rtsps://…:7441/…?enableSrtp   # URLs RTSPS UniFi Protect (contiennent le jeton)
 camera.sas=rtsps://…:7441/…?enableSrtp
+nuki.token=…                          # jeton de l'API HTTP du bridge Nuki (état de la porte)
 ```
 
-Réglages locaux (moOde, météo) : `app/src/main/java/be/lghs/lab/Config.kt`.
+Sans `nuki.token`, l'app se compile mais la tuile Porte affiche « Nuki ? ».
+
+Réglages locaux (moOde, bridge Nuki, météo) : `app/src/main/java/be/lghs/lab/Config.kt`.
 
 ## Arrêts TEC et trains SNCB
 
@@ -80,6 +83,7 @@ long sur OK. La touche Retour ne quitte pas l'écran d'accueil.
 | Donnée | Source | Rafraîchissement |
 |---|---|---|
 | Caméras | UniFi Protect, RTSP (port 7447, converti depuis l'URL RTSPS) | continu |
+| Porte | Bridge Nuki, `/lockState` (vert : verrouillée et fermée, sinon cadre rouge) | 5 s |
 | Musique | moOde : MPD (`idle`) + renderers Spotify/AirPlay/Deezer | instantané / 2 s |
 | Bus | GTFS-RT TEC (retards) + horaires générés | 30 s |
 | Trains | [iRail](https://api.irail.be) | 60 s |
