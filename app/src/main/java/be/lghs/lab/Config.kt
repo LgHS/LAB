@@ -29,6 +29,11 @@ object Config {
     val cameraSas = Camera("SAS Vélo", BuildConfig.CAMERA_SAS_URL)
 
     const val MOODE_HOST = "172.16.42.253"
+
+    // Bridge Nuki (API HTTP locale) et serrure de la porte d'entrée « HS Rue ».
+    // Jeton : local.properties (nuki.token).
+    const val NUKI_BRIDGE = "http://172.16.43.219:8080"
+    const val NUKI_PORTE_ID = 1167243628L
     const val MPD_PORT = 6600
 
     // Rue de la Loi, Outremeuse

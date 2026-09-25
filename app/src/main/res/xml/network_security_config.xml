@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
     <base-config cleartextTrafficPermitted="false" />
-    <!-- moOde (pochettes via HTTP sur le LAN) -->
+    <!-- LAN en HTTP : moOde (pochettes, renderers) et bridge Nuki -->
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="false">172.16.42.253</domain>
         <domain includeSubdomains="false">moode.local</domain>
+        <domain includeSubdomains="false">172.16.43.219</domain>
     </domain-config>
 </network-security-config>

@@ -1,0 +1,8 @@
+<!--
+  Le trait est centré sur un rectangle inséré de la moitié de son épaisseur : pour que son
+  bord extérieur épouse la découpe de la tuile (14dp, CameraTileView), rayon = 14 - 6/2.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <corners android:radius="11dp" />
+    <stroke android:width="6dp" android:color="@color/alert" />
+</shape>

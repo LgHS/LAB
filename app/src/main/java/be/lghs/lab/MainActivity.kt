@@ -13,6 +13,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import be.lghs.lab.data.MpdClient
+import be.lghs.lab.data.NukiRepository
 import be.lghs.lab.data.RendererClient
 import be.lghs.lab.data.TecRepository
 import be.lghs.lab.data.TransportConfigRepository
@@ -73,6 +74,13 @@ class MainActivity : AppCompatActivity() {
                         if (n++ % 10 == 0L) transport.render(now / 1000)
                         delay(1_000 - now % 1_000)
                     }
+                }
+                // Le bridge rate parfois une lecture Bluetooth : on garde le dernier état connu
+                // et on n'affiche « Nuki ? » qu'après 3 échecs d'affilée (15 s)
+                var nukiFailures = 0
+                poll("Nuki", everyMs = 5_000, onError = { if (++nukiFailures >= 3) binding.tilePorte.showDoor(null) }) {
+                    binding.tilePorte.showDoor(NukiRepository.fetch())
+                    nukiFailures = 0
                 }
                 poll("météo", everyMs = 10 * 60_000, retryMs = 60_000) {
                     info.showWeather(WeatherRepository.fetch())

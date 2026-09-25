@@ -24,6 +24,7 @@ android {
         buildConfigField("String", "TEC_API_KEY", secret("tec.apiKey"))
         buildConfigField("String", "CAMERA_PORTE_URL", secret("camera.porte"))
         buildConfigField("String", "CAMERA_SAS_URL", secret("camera.sas"))
+        buildConfigField("String", "NUKI_TOKEN", secret("nuki.token"))
     }
 
     buildTypes {
@@ -57,6 +58,7 @@ dependencies {
 
     implementation("androidx.core:core-ktx:1.16.0")
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.json:json:20240303") // org.json réel (celui d'android.jar est un bouchon)
     implementation("androidx.appcompat:appcompat:1.7.1")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.9.2")
 }
