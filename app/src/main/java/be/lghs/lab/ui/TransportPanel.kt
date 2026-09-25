@@ -82,7 +82,7 @@ class TransportPanel(private val b: PanelTransportBinding, scope: LifecycleCorou
             trains = boards.flatMap { board ->
                 board.departures.map {
                     Row(it.epochSec, it.line, true, board.route.to,
-                        "${shortStation(board.route.from)} · v${it.platform}", it.delaySec, it.canceled, it.last)
+                        stationAndPlatform(board.route.from, it.platform), it.delaySec, it.canceled, it.last)
                 }
             }
         }
@@ -220,6 +220,11 @@ class TransportPanel(private val b: PanelTransportBinding, scope: LifecycleCorou
     }
 
     private fun shortStation(name: String) = name.removePrefix("Liège-").replace("Saint-", "St-")
+
+    /** « St-Lambert · Voie 2 » ; iRail renvoie « ? » tant que la voie n'est pas connue. */
+    private fun stationAndPlatform(station: String, platform: String) =
+        if (platform.isBlank() || platform == "?") shortStation(station)
+        else "${shortStation(station)} · Voie $platform"
 
     private fun placeholder(message: String) = TextView(context).apply {
         text = message
