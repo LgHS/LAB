@@ -33,6 +33,8 @@ SCHEDULE = OUT_DIR / "tec_schedule.csv"
 LAST_TRIPS = OUT_DIR / "tec_last_trips.csv"
 GENERATED = OUT_DIR / "generated.json"
 GTFS_URL = "https://opendata.tec-wl.be/Current%20GTFS/TEC-GTFS.zip"
+# Cloudflare (opendata.tec-wl.be) refuse le User-Agent par défaut de Python (403)
+USER_AGENT = "LittleAndroidBrother/1.0 (+https://github.com/LgHS/LAB)"
 
 
 def rows(z, name):
@@ -70,7 +72,8 @@ if len(sys.argv) > 1:
     data = pathlib.Path(sys.argv[1]).read_bytes()
 else:
     print(f"Téléchargement {GTFS_URL}…")
-    data = urllib.request.urlopen(GTFS_URL).read()
+    request = urllib.request.Request(GTFS_URL, headers={"User-Agent": USER_AGENT})
+    data = urllib.request.urlopen(request, timeout=300).read()
 
 with zipfile.ZipFile(io.BytesIO(data)) as z:
     feed_start = next(rows(z, "feed_info.txt")).get("feed_start_date", "")
