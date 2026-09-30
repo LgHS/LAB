@@ -65,6 +65,80 @@
             android:textSize="22sp" />
     </LinearLayout>
 
+    <!-- Commande Deliveroo en cours : code pour le livreur (masqué sinon) -->
+    <LinearLayout
+        android:id="@+id/delivery_card"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:background="@drawable/card_bg"
+        android:backgroundTint="@color/deliveroo_bg"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="8dp"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/delivery_label"
+                style="@style/SectionTitle"
+                android:layout_marginBottom="0dp"
+                android:text="🛵 Code livreur"
+                android:textColor="@color/deliveroo" />
+
+            <TextView
+                android:id="@+id/delivery_code"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-medium"
+                android:includeFontPadding="false"
+                android:letterSpacing="0.1"
+                android:textColor="@color/text"
+                android:textSize="36sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/delivery_window"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-medium"
+                android:maxLines="1"
+                android:textColor="@color/deliveroo"
+                android:textSize="16sp" />
+
+            <TextView
+                android:id="@+id/delivery_restaurant"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="@color/text"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/delivery_status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="2"
+                android:textColor="@color/text_dim"
+                android:textSize="12sp" />
+        </LinearLayout>
+    </LinearLayout>
+
     <include
         android:id="@+id/music"
         layout="@layout/panel_music"

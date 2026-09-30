@@ -12,6 +12,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import be.lghs.lab.data.DeliverooRepository
 import be.lghs.lab.data.MpdClient
 import be.lghs.lab.data.NukiRepository
 import be.lghs.lab.data.RendererClient
@@ -70,6 +71,7 @@ class MainActivity : AppCompatActivity() {
                     while (true) {
                         val now = System.currentTimeMillis()
                         info.showClock(now)
+                        info.renderDelivery(now / 1000)
                         music.tick()
                         if (n++ % 10 == 0L) transport.render(now / 1000)
                         delay(1_000 - now % 1_000)
@@ -81,6 +83,9 @@ class MainActivity : AppCompatActivity() {
                 poll("Nuki", everyMs = 5_000, onError = { if (++nukiFailures >= 3) binding.tilePorte.showDoor(null) }) {
                     binding.tilePorte.showDoor(NukiRepository.fetch())
                     nukiFailures = 0
+                }
+                poll("Deliveroo", everyMs = 15_000) {
+                    info.showDelivery(DeliverooRepository.fetch(), nowSec())
                 }
                 poll("météo", everyMs = 10 * 60_000, retryMs = 60_000) {
                     info.showWeather(WeatherRepository.fetch())
