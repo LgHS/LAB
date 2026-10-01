@@ -84,7 +84,7 @@ long sur OK. La touche Retour ne quitte pas l'écran d'accueil.
 |---|---|---|
 | Caméras | UniFi Protect, RTSP (port 7447, converti depuis l'URL RTSPS) | continu |
 | Porte | Bridge Nuki, `/lockState` (vert : verrouillée et fermée, sinon cadre rouge) | 5 s |
-| Livraison | [lghs.be/deliveroo](https://lghs.be/deliveroo/?json) : code livreur, décompte, « proche » en évidence | 15 s |
+| Livraison | Code livreur, décompte, « proche » en évidence | 15 s |
 | Musique | moOde : MPD (`idle`) + renderers Spotify/AirPlay/Deezer | instantané / 2 s |
 | Bus | GTFS-RT TEC (retards) + horaires générés | 30 s |
 | Trains | [iRail](https://api.irail.be) | 60 s |
