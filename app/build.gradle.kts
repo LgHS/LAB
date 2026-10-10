@@ -13,8 +13,8 @@ android {
         applicationId = "be.lghs.lab"
         minSdk = 24
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.3.0"
+        versionCode = 2
+        versionName = "0.3.1"
 
         // Secrets hors git : local.properties
         val local = Properties().apply {

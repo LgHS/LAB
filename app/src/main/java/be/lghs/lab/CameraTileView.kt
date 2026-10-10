@@ -7,6 +7,7 @@ import android.content.res.ColorStateList
 import android.graphics.Outline
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.util.AttributeSet
 import android.util.Log
 import android.view.LayoutInflater
@@ -64,44 +65,89 @@ class CameraTileView @JvmOverloads constructor(
     private val listener = object : Player.Listener {
         override fun onPlaybackStateChanged(state: Int) {
             when (state) {
-                Player.STATE_READY -> {
-                    retryDelayMs = MIN_RETRY_MS
-                    status.visibility = View.GONE
-                }
+                Player.STATE_READY -> status.visibility = View.GONE
                 Player.STATE_BUFFERING -> showStatus(R.string.status_connecting)
-                Player.STATE_ENDED -> scheduleReconnect()
+                Player.STATE_ENDED -> scheduleReconnect("fin de flux")
                 Player.STATE_IDLE -> Unit
             }
         }
 
         override fun onPlayerError(error: PlaybackException) {
             Log.w(TAG, "${camera?.name}: ${error.errorCodeName}", error)
-            scheduleReconnect()
+            scheduleReconnect(error.errorCodeName)
         }
     }
 
+    /**
+     * Chien de garde : le lecteur peut rester bloqué sans erreur (connexion RTSP ouverte mais
+     * plus d'images : NVR redémarré, caméra reconnectée, horodatages RTP qui rebouclent après
+     * ~13 h…). On surveille le nombre d'images réellement affichées ; s'il n'avance plus,
+     * on repart d'un lecteur neuf.
+     */
+    private val watchdog = object : Runnable {
+        override fun run() {
+            val p = player
+            if (p != null) {
+                val counters = p.videoDecoderCounters
+                counters?.ensureUpdated()
+                val rendered = counters?.renderedOutputBufferCount ?: 0
+                val now = SystemClock.elapsedRealtime()
+                if (rendered != lastRendered) {
+                    lastRendered = rendered
+                    lastProgressAt = now
+                    retryDelayMs = MIN_RETRY_MS // ça tourne vraiment : on oublie les échecs
+                } else if (now - lastProgressAt > STALL_MS && !reconnectPending) {
+                    scheduleReconnect("aucune image depuis ${(now - lastProgressAt) / 1000} s")
+                }
+            }
+            handler.postDelayed(this, WATCHDOG_MS)
+        }
+    }
+    private var lastRendered = 0
+    private var lastProgressAt = 0L
+    private var reconnectPending = false
+
     fun start(camera: Camera) {
         this.camera = camera
-        release()
+        retryDelayMs = MIN_RETRY_MS
+        restart()
+        handler.removeCallbacks(watchdog)
+        handler.postDelayed(watchdog, WATCHDOG_MS)
+    }
+
+    /** Lecteur neuf à chaque (re)connexion : un ExoPlayer réutilisé après des heures d'erreurs peut rester bancal. */
+    private fun restart() {
+        val cam = camera ?: return
+        reconnectPending = false
+        releasePlayer()
+        showStatus(R.string.status_connecting)
 
         // Buffers courts : on privilégie la latence sur la fluidité (usage interphone)
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(500, 2_000, 250, 500)
             .build()
-
-        player = ExoPlayer.Builder(context)
+        val p = ExoPlayer.Builder(context)
             .setLoadControl(loadControl)
             .build()
-            .also {
-                it.addListener(listener)
-                // UniFi envoie de l'Opus sans en-tête in-band : RtpOpusReader de Media3 plante
-                // ("ID Header missing"). Pas de son sur un moniteur, on ignore la piste.
-                it.trackSelectionParameters = it.trackSelectionParameters.buildUpon()
-                    .setTrackTypeDisabled(C.TRACK_TYPE_AUDIO, true)
-                    .build()
-                playerView.player = it
-            }
-        connect()
+        p.addListener(listener)
+        // UniFi envoie de l'Opus sans en-tête in-band : RtpOpusReader de Media3 plante
+        // ("ID Header missing"). Pas de son sur un moniteur, on ignore la piste.
+        p.trackSelectionParameters = p.trackSelectionParameters.buildUpon()
+            .setTrackTypeDisabled(C.TRACK_TYPE_AUDIO, true)
+            .build()
+        playerView.player = p
+        player = p
+
+        val source = RtspMediaSource.Factory()
+            .setForceUseRtpTcp(true) // UDP passe mal les NAT/Wi-Fi, TCP est plus fiable
+            .setTimeoutMs(8_000)
+            .createMediaSource(MediaItem.fromUri(cam.playableUri()))
+        p.setMediaSource(source)
+        p.prepare()
+        p.playWhenReady = true
+
+        lastRendered = 0
+        lastProgressAt = SystemClock.elapsedRealtime()
     }
 
     /**
@@ -136,29 +182,30 @@ class CameraTileView @JvmOverloads constructor(
 
     fun release() {
         handler.removeCallbacksAndMessages(null)
+        reconnectPending = false
+        releasePlayer()
+    }
+
+    private fun releasePlayer() {
         playerView.player = null
         player?.release()
         player = null
     }
 
-    private fun connect() {
-        val cam = camera ?: return
-        val p = player ?: return
-        showStatus(R.string.status_connecting)
-        val source = RtspMediaSource.Factory()
-            .setForceUseRtpTcp(true) // UDP passe mal les NAT/Wi-Fi, TCP est plus fiable
-            .setTimeoutMs(8_000)
-            .createMediaSource(MediaItem.fromUri(cam.playableUri()))
-        p.setMediaSource(source)
-        p.prepare()
-        p.playWhenReady = true
+    private fun scheduleReconnect(reason: String) {
+        if (reconnectPending) return
+        reconnectPending = true
+        Log.w(TAG, "${camera?.name}: relance dans ${retryDelayMs / 1000} s ($reason)")
+        showStatus(R.string.status_reconnecting)
+        handler.removeCallbacks(reconnect)
+        handler.postDelayed(reconnect, retryDelayMs)
+        retryDelayMs = (retryDelayMs * 2).coerceAtMost(MAX_RETRY_MS)
     }
 
-    private fun scheduleReconnect() {
-        showStatus(R.string.status_reconnecting)
-        handler.removeCallbacksAndMessages(null)
-        handler.postDelayed({ connect() }, retryDelayMs)
-        retryDelayMs = (retryDelayMs * 2).coerceAtMost(MAX_RETRY_MS)
+    private val reconnect = Runnable {
+        restart()
+        // Laisse au nouveau lecteur le temps de se connecter avant de le juger
+        lastProgressAt = SystemClock.elapsedRealtime()
     }
 
     private fun showStatus(textRes: Int) {
@@ -170,5 +217,7 @@ class CameraTileView @JvmOverloads constructor(
         const val TAG = "CameraTile"
         const val MIN_RETRY_MS = 1_000L
         const val MAX_RETRY_MS = 15_000L
+        const val WATCHDOG_MS = 5_000L
+        const val STALL_MS = 20_000L
     }
 }
