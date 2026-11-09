@@ -15,7 +15,8 @@ fun setting(env: String, key: String): String? =
 // Version : passée par la CI depuis le tag (v0.4.0 → -PappVersion=0.4.0), sinon valeur par défaut.
 // versionCode = majeur×10000 + mineur×100 + patch : toujours croissant d'une release à l'autre,
 // condition pour qu'Android accepte la mise à jour.
-val appVersion = (findProperty("appVersion") as String?) ?: "0.3.1"
+val releaseVersion = findProperty("appVersion") as String?
+val appVersion = releaseVersion ?: "0.3.1"
 val appVersionCode = Regex("""(\d+)\.(\d+)\.(\d+)""").matchEntire(appVersion)
     ?.destructured?.let { (major, minor, patch) -> major.toInt() * 10_000 + minor.toInt() * 100 + patch.toInt() }
     ?: error("appVersion « $appVersion » invalide : attendu X.Y.Z (tag vX.Y.Z)")
@@ -33,7 +34,8 @@ android {
         minSdk = 24
         targetSdk = 36
         versionCode = appVersionCode
-        versionName = appVersion
+        // Affiché à l'écran : « -dev » distingue un build local d'une release CI
+        versionName = if (releaseVersion != null) appVersion else "$appVersion-dev"
 
         fun secret(name: String) = "\"${local.getProperty(name, "")}\""
         buildConfigField("String", "TEC_API_KEY", secret("tec.apiKey"))

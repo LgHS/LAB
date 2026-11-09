@@ -56,13 +56,28 @@
                 android:textSize="12sp" />
         </LinearLayout>
 
-        <TextView
-            android:id="@+id/clock"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:fontFamily="sans-serif-medium"
-            android:textColor="@color/text"
-            android:textSize="22sp" />
+            android:gravity="end"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/clock"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-medium"
+                android:textColor="@color/text"
+                android:textSize="22sp" />
+
+            <!-- Version déployée (tag de la release GitHub) -->
+            <TextView
+                android:id="@+id/app_version"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/text_faint"
+                android:textSize="10sp" />
+        </LinearLayout>
     </LinearLayout>
 
     <!-- Commande Deliveroo en cours : code pour le livreur (masqué sinon) -->

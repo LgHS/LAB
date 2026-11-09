@@ -44,7 +44,7 @@ dans `local.properties`. Sans clé, le build release est signé avec la clé deb
 
 ### Mise à jour automatique
 
-L'app vérifie la dernière release GitHub une minute après son démarrage puis toutes les 6 h.
+L'app vérifie la dernière release GitHub une minute après son démarrage puis toutes les 15 min.
 Si son tag est plus récent, elle télécharge l'APK, vérifie qu'il est signé avec la même clé,
 l'installe et se relance. À autoriser une fois sur la box :
 
@@ -58,6 +58,9 @@ télécommande). Avant Android 12, la confirmation s'affiche à chaque mise à j
 installée avec un APK signé par une autre clé (clé debug) ne se met pas à jour : la
 désinstaller une fois, puis installer l'APK de la release. Les builds debug ne se mettent
 jamais à jour. Journal : `adb logcat -s Updater`.
+
+La version installée est affichée sous l'heure : `v0.4.0` pour une release, suffixe `-dev`
+pour un build local (sans tag), `debug` pour un build debug.
 
 Réglages locaux (moOde, bridge Nuki, météo) : `app/src/main/java/be/lghs/lab/Config.kt`.
 

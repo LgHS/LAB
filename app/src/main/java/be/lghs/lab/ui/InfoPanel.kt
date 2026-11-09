@@ -4,6 +4,7 @@ import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
 import android.content.res.ColorStateList
 import android.view.View
+import be.lghs.lab.BuildConfig
 import be.lghs.lab.R
 import be.lghs.lab.data.Delivery
 import be.lghs.lab.data.Weather
@@ -17,6 +18,11 @@ import kotlin.math.roundToInt
 /** Haut-droite : météo + heure, et code Deliveroo au-dessus de la musique s'il y a une commande. */
 class InfoPanel(private val b: PanelInfoBinding) {
     private val hhmm = SimpleDateFormat("HH:mm", Locale.FRANCE)
+
+    init {
+        // Release CI : version du tag (v0.4.0) ; build local : suffixe -dev
+        b.appVersion.text = "v${BuildConfig.VERSION_NAME}" + if (BuildConfig.DEBUG) " debug" else ""
+    }
 
     fun showClock(nowMs: Long) {
         b.clock.text = hhmm.format(Date(nowMs))
