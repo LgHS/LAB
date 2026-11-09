@@ -45,6 +45,8 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         hideSystemBars()
+        // Version déployée : tag de la release (v0.4.0), -dev pour un build local
+        binding.appVersion.text = "v${BuildConfig.VERSION_NAME}" + if (BuildConfig.DEBUG) " debug" else ""
         info = InfoPanel(binding.panelInfo)
         music = MusicPanel(binding.panelInfo.music, lifecycleScope)
         transport = TransportPanel(binding.panelTransport, lifecycleScope)

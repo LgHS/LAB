@@ -59,7 +59,7 @@ installée avec un APK signé par une autre clé (clé debug) ne se met pas à j
 désinstaller une fois, puis installer l'APK de la release. Les builds debug ne se mettent
 jamais à jour. Journal : `adb logcat -s Updater`.
 
-La version installée est affichée sous l'heure : `v0.4.0` pour une release, suffixe `-dev`
+La version installée est affichée en permanence en bas à gauche de l'écran : `v0.4.0` pour une release, suffixe `-dev`
 pour un build local (sans tag), `debug` pour un build debug.
 
 Réglages locaux (moOde, bridge Nuki, météo) : `app/src/main/java/be/lghs/lab/Config.kt`.

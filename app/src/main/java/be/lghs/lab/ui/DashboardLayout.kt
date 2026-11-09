@@ -18,6 +18,7 @@ import kotlin.math.roundToInt
  *  ├──────────────────┤  SAS (16:9)     │
  *  │  bus │ trains    │  chevauche      │
  *  └──────────────────┴─────────────────┘
+ *   v0.4.0  ← version, dans la marge du bas
  *
  * Même marge [gap] sur les quatre bords de l'écran.
  */
@@ -39,6 +40,10 @@ class DashboardLayout @JvmOverloads constructor(
         computeRects(w, h)
         for (i in 0 until childCount) {
             val child = getChildAt(i)
+            if (child.id == R.id.app_version) {
+                child.measure(MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED), MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED))
+                continue
+            }
             val r = rectFor(child) ?: continue
             child.measure(
                 MeasureSpec.makeMeasureSpec(r.width(), MeasureSpec.EXACTLY),
@@ -51,6 +56,12 @@ class DashboardLayout @JvmOverloads constructor(
     override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
         for (i in 0 until childCount) {
             val child = getChildAt(i)
+            if (child.id == R.id.app_version) {
+                // Centrée verticalement dans la marge du bas, alignée sur le bord gauche des panneaux
+                val top = (b - t) - gap + (gap - child.measuredHeight) / 2
+                child.layout(gap, top, gap + child.measuredWidth, top + child.measuredHeight)
+                continue
+            }
             val rect = rectFor(child) ?: continue
             child.layout(rect.left, rect.top, rect.right, rect.bottom)
         }
