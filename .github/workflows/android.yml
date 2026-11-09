@@ -80,7 +80,15 @@ jobs:
             exit 1
           fi
 
+      # Release créée sur github.com (qui pousse le tag) : on y ajoute l'APK sans toucher au texte.
+      # Tag poussé en ligne de commande : on crée la release.
       - name: Publier la release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" "LittleAndroidBrother-$VERSION.apk" --title "$GITHUB_REF_NAME" --generate-notes
+        run: |
+          APK="LittleAndroidBrother-$VERSION.apk"
+          if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "$APK" --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" "$APK" --title "$GITHUB_REF_NAME" --generate-notes
+          fi
