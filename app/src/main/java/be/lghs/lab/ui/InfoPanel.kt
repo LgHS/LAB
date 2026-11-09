@@ -48,7 +48,6 @@ class InfoPanel(private val b: PanelInfoBinding) {
     fun showWeather(w: Weather) {
         b.weatherIcon.text = w.icon
         b.weatherTemp.text = "${w.temperature.roundToInt()}°"
-        b.weatherLabel.text = w.label
         b.weatherDetails.text = "↓${w.min.roundToInt()}° ↑${w.max.roundToInt()}° · 💧${w.rainChance}%"
     }
 

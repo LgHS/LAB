@@ -1,6 +1,9 @@
 package be.lghs.lab.ui
 
 import android.graphics.BitmapFactory
+import android.graphics.RenderEffect
+import android.graphics.Shader
+import android.os.Build
 import android.os.SystemClock
 import android.view.View
 import androidx.lifecycle.LifecycleCoroutineScope
@@ -21,9 +24,17 @@ class MusicPanel(private val b: PanelMusicBinding, private val scope: LifecycleC
     private var coverJob: Job? = null
 
     init {
+        // Fond flouté qui suit les coins arrondis de la carte
+        b.root.clipToOutline = true
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            b.coverBg.setRenderEffect(RenderEffect.createBlurEffect(BLUR_PX, BLUR_PX, Shader.TileMode.CLAMP))
+        } else {
+            b.coverBg.alpha = 0.15f // sans flou, juste une teinte discrète
+        }
         // Pochette carrée, calée sur la hauteur du panneau
-        b.root.addOnLayoutChangeListener { root, left, top, right, bottom, _, _, _, _ ->
-            val size = minOf(bottom - top - root.paddingTop - root.paddingBottom, ((right - left) * 0.32f).toInt())
+        b.root.addOnLayoutChangeListener { _, left, top, right, bottom, _, _, _, _ ->
+            val padding = b.musicContent.paddingTop + b.musicContent.paddingBottom
+            val size = minOf(bottom - top - padding, ((right - left) * 0.45f).toInt())
             val lp = b.cover.layoutParams
             if (lp.width != size || lp.height != size) {
                 b.cover.post { b.cover.layoutParams = lp.apply { width = size; height = size } }
@@ -38,6 +49,7 @@ class MusicPanel(private val b: PanelMusicBinding, private val scope: LifecycleC
         b.musicIdle.text = if (np == null) "♪  moOde injoignable" else "♪  Pas de musique"
         b.musicIdle.visibility = if (idle) View.VISIBLE else View.GONE
         b.musicContent.visibility = if (idle) View.GONE else View.VISIBLE
+        b.coverBg.visibility = if (idle) View.GONE else View.VISIBLE
         if (idle) {
             loadCover(null)
             return
@@ -80,14 +92,22 @@ class MusicPanel(private val b: PanelMusicBinding, private val scope: LifecycleC
         coverUrl = url
         coverJob?.cancel()
         b.cover.setImageDrawable(null)
+        b.coverBg.setImageDrawable(null)
         if (url == null) return
         coverJob = scope.launch {
             val bitmap = runCatching {
                 val bytes = Http.get(url) { it.readBytes() }
                 withContext(Dispatchers.Default) { BitmapFactory.decodeByteArray(bytes, 0, bytes.size) }
             }.getOrNull()
-            if (coverUrl == url) b.cover.setImageBitmap(bitmap)
+            if (coverUrl == url) {
+                b.cover.setImageBitmap(bitmap)
+                b.coverBg.setImageBitmap(bitmap)
+            }
         }
+    }
+
+    private companion object {
+        const val BLUR_PX = 60f
     }
 
     private fun mmss(sec: Double): String {

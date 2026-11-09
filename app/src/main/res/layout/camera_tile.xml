@@ -50,8 +50,8 @@
         android:layout_margin="14dp"
         android:background="@drawable/pill_bg"
         android:fontFamily="sans-serif-medium"
-        android:paddingHorizontal="10dp"
-        android:paddingVertical="3dp"
-        android:textSize="13sp"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="6dp"
+        android:textSize="20sp"
         android:visibility="gone" />
 </merge>

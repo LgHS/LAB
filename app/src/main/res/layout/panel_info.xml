@@ -26,35 +26,22 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="10dp"
-            android:fontFamily="sans-serif-light"
+            android:fontFamily="sans-serif-black"
             android:text="—°"
             android:textColor="@color/text"
             android:textSize="34sp" />
 
-        <LinearLayout
+        <!-- Min / max du jour et risque de pluie -->
+        <TextView
+            android:id="@+id/weather_details"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="12dp"
             android:layout_weight="1"
-            android:orientation="vertical">
-
-            <TextView
-                android:id="@+id/weather_label"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:maxLines="1"
-                android:text="Liège"
-                android:textColor="@color/text"
-                android:textSize="15sp" />
-
-            <TextView
-                android:id="@+id/weather_details"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:maxLines="1"
-                android:textColor="@color/text_dim"
-                android:textSize="12sp" />
-        </LinearLayout>
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="@color/text_dim"
+            android:textSize="22sp" />
 
         <TextView
             android:id="@+id/clock"

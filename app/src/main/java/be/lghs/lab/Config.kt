@@ -50,6 +50,7 @@ object Config {
 
     /** Mise à jour automatique : releases GitHub de ce dépôt (workflow android.yml). */
     const val UPDATE_REPO = "LgHS/LAB"
-    // API GitHub sans authentification : 60 appels/h par IP (partagée avec le hackerspace)
-    const val UPDATE_CHECK_MS = 15 * 60_000L
+    // API GitHub sans authentification : 60 appels/h par IP (partagée avec le hackerspace) ;
+    // toutes les 5 min = 12 appels/h
+    const val UPDATE_CHECK_MS = 5 * 60_000L
 }

@@ -100,7 +100,7 @@ class MainActivity : AppCompatActivity() {
                     val config = transportConfig.awaitConfig()
                     transport.showTrains(config.trainRoutes.map { TrainRepository.fetch(it, config.trainsPerRoute) }, nowSec())
                 }
-                // Nouvelle release GitHub : une minute après le démarrage, puis toutes les 15 min
+                // Nouvelle release GitHub : une minute après le démarrage, puis toutes les 5 min
                 launch {
                     delay(60_000)
                     poll("mise à jour", everyMs = Config.UPDATE_CHECK_MS) {
