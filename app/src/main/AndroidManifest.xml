@@ -9,6 +9,8 @@
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <!-- Mise à jour automatique depuis les releases GitHub, à accorder via adb (voir README) -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- Android 12+ : mise à jour sans confirmation à l'écran (accordée d'office, pas d'adb) -->
+    <uses-permission android:name="android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION" />
 
     <!-- Android TV : pas de tactile requis, leanback optionnel pour rester installable sur tablette -->
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
