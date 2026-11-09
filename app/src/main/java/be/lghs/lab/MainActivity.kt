@@ -24,6 +24,7 @@ import be.lghs.lab.databinding.ActivityMainBinding
 import be.lghs.lab.ui.InfoPanel
 import be.lghs.lab.ui.MusicPanel
 import be.lghs.lab.ui.TransportPanel
+import be.lghs.lab.update.Updater
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
@@ -96,6 +97,13 @@ class MainActivity : AppCompatActivity() {
                 poll("SNCB", everyMs = 60_000, onError = { transport.showTrains(null, nowSec()) }) {
                     val config = transportConfig.awaitConfig()
                     transport.showTrains(config.trainRoutes.map { TrainRepository.fetch(it, config.trainsPerRoute) }, nowSec())
+                }
+                // Nouvelle release GitHub : une minute après le démarrage, puis toutes les 6 h
+                launch {
+                    delay(60_000)
+                    poll("mise à jour", everyMs = Config.UPDATE_CHECK_MS, retryMs = 30 * 60_000) {
+                        Updater.checkAndInstall(this@MainActivity)
+                    }
                 }
             }
         }

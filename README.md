@@ -42,6 +42,23 @@ peut pas mettre à jour l'app installée (il faut désinstaller). Pour signer en
 clé : `release.storeFile`, `release.storePassword`, `release.keyAlias`, `release.keyPassword`
 dans `local.properties`. Sans clé, le build release est signé avec la clé debug.
 
+### Mise à jour automatique
+
+L'app vérifie la dernière release GitHub une minute après son démarrage puis toutes les 6 h.
+Si son tag est plus récent, elle télécharge l'APK, vérifie qu'il est signé avec la même clé,
+l'installe et se relance. À autoriser une fois sur la box :
+
+```bash
+adb shell appops set be.lghs.lab REQUEST_INSTALL_PACKAGES allow
+```
+
+Sans confirmation à partir d'Android 12, une fois que l'app est son propre installeur : la
+première mise à jour après un `adb install` affiche une confirmation à l'écran (OK à la
+télécommande). Avant Android 12, la confirmation s'affiche à chaque mise à jour. Une box
+installée avec un APK signé par une autre clé (clé debug) ne se met pas à jour : la
+désinstaller une fois, puis installer l'APK de la release. Les builds debug ne se mettent
+jamais à jour. Journal : `adb logcat -s Updater`.
+
 Réglages locaux (moOde, bridge Nuki, météo) : `app/src/main/java/be/lghs/lab/Config.kt`.
 
 ## Arrêts TEC et trains SNCB

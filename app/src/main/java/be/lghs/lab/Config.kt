@@ -47,4 +47,8 @@ object Config {
      */
     const val REMOTE_CONFIG_URL = "https://raw.githubusercontent.com/LgHS/LAB/main/dashboard/"
     const val REMOTE_CONFIG_REFRESH_MS = 60 * 60_000L
+
+    /** Mise à jour automatique : releases GitHub de ce dépôt (workflow android.yml). */
+    const val UPDATE_REPO = "LgHS/LAB"
+    const val UPDATE_CHECK_MS = 6 * 60 * 60_000L
 }
