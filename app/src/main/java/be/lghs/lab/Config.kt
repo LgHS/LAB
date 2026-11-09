@@ -24,14 +24,14 @@ data class Camera(val name: String, val url: String) {
 }
 
 object Config {
-    // URLs RTSP(S) UniFi hors du dépôt public (elles contiennent le jeton d'accès) : local.properties
-    val cameraPorte = Camera("Porte", BuildConfig.CAMERA_PORTE_URL)
-    val cameraSas = Camera("SAS Vélo", BuildConfig.CAMERA_SAS_URL)
+    // URLs RTSP(S) UniFi hors du dépôt public (elles contiennent le jeton d'accès) : voir Secrets
+    val cameraPorte get() = Camera("Porte", Secrets.cameraPorte)
+    val cameraSas get() = Camera("SAS Vélo", Secrets.cameraSas)
 
     const val MOODE_HOST = "172.16.42.253"
 
     // Bridge Nuki (API HTTP locale) et serrure de la porte d'entrée « HS Rue ».
-    // Jeton : local.properties (nuki.token).
+    // Jeton : voir Secrets (nuki.token).
     const val NUKI_BRIDGE = "http://172.16.43.219:8080"
     const val NUKI_PORTE_ID = 1167243628L
     const val MPD_PORT = 6600
@@ -47,4 +47,9 @@ object Config {
      */
     const val REMOTE_CONFIG_URL = "https://raw.githubusercontent.com/LgHS/LAB/main/dashboard/"
     const val REMOTE_CONFIG_REFRESH_MS = 60 * 60_000L
+
+    /** Mise à jour automatique : releases GitHub de ce dépôt (workflow android.yml). */
+    const val UPDATE_REPO = "LgHS/LAB"
+    // API GitHub sans authentification : 60 appels/h par IP (partagée avec le hackerspace)
+    const val UPDATE_CHECK_MS = 15 * 60_000L
 }

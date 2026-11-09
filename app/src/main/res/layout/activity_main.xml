@@ -27,6 +27,17 @@
         android:id="@+id/panel_transport"
         layout="@layout/panel_transport" />
 
+    <!-- Version déployée, en permanence, dans la marge en bas à gauche -->
+    <TextView
+        android:id="@+id/app_version"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:includeFontPadding="false"
+        android:shadowColor="#CC000000"
+        android:shadowRadius="3"
+        android:textColor="@color/text_dim"
+        android:textSize="10sp" />
+
     <!-- Dernier enfant = dessiné au-dessus -->
     <be.lghs.lab.CameraTileView
         android:id="@+id/tile_sas"

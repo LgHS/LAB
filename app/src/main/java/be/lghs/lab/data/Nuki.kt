@@ -1,7 +1,7 @@
 package be.lghs.lab.data
 
-import be.lghs.lab.BuildConfig
 import be.lghs.lab.Config
+import be.lghs.lab.Secrets
 import org.json.JSONObject
 import java.io.IOException
 
@@ -20,7 +20,7 @@ object NukiRepository {
 
     suspend fun fetch(nukiId: Long = Config.NUKI_PORTE_ID): DoorStatus {
         val state = JSONObject(
-            Http.getText("${Config.NUKI_BRIDGE}/lockState?nukiId=$nukiId&deviceType=$SMART_LOCK&token=${BuildConfig.NUKI_TOKEN}"),
+            Http.getText("${Config.NUKI_BRIDGE}/lockState?nukiId=$nukiId&deviceType=$SMART_LOCK&token=${Secrets.nukiToken}"),
         )
         if (!state.optBoolean("success", false)) throw IOException("Bridge Nuki : échec de lecture")
         return parse(state)

@@ -1,6 +1,6 @@
 package be.lghs.lab.data
 
-import be.lghs.lab.BuildConfig
+import be.lghs.lab.Secrets
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.IOException
@@ -28,8 +28,8 @@ data class BusDeparture(
 class TecRepository {
 
     suspend fun fetch(config: TransportConfig, nowSec: Long = System.currentTimeMillis() / 1000): List<BusDeparture> {
-        val key = BuildConfig.TEC_API_KEY
-        if (key.isBlank()) throw IOException("Clé TEC absente (tec.apiKey dans local.properties)")
+        val key = Secrets.tecApiKey
+        if (key.isBlank()) throw IOException("Clé TEC absente (tec.apiKey, voir Secrets)")
         val trips = Http.get(URL + key) { GtfsRt.parse(it.readBytes()) }
         val until = nowSec + config.tecWindowMinutes * 60
 

@@ -24,6 +24,7 @@ import be.lghs.lab.databinding.ActivityMainBinding
 import be.lghs.lab.ui.InfoPanel
 import be.lghs.lab.ui.MusicPanel
 import be.lghs.lab.ui.TransportPanel
+import be.lghs.lab.update.Updater
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
@@ -44,6 +45,8 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         hideSystemBars()
+        // Version déployée : tag de la release (v0.4.0), -dev pour un build local
+        binding.appVersion.text = "v${BuildConfig.VERSION_NAME}" + if (BuildConfig.DEBUG) " debug" else ""
         info = InfoPanel(binding.panelInfo)
         music = MusicPanel(binding.panelInfo.music, lifecycleScope)
         transport = TransportPanel(binding.panelTransport, lifecycleScope)
@@ -97,12 +100,21 @@ class MainActivity : AppCompatActivity() {
                     val config = transportConfig.awaitConfig()
                     transport.showTrains(config.trainRoutes.map { TrainRepository.fetch(it, config.trainsPerRoute) }, nowSec())
                 }
+                // Nouvelle release GitHub : une minute après le démarrage, puis toutes les 15 min
+                launch {
+                    delay(60_000)
+                    poll("mise à jour", everyMs = Config.UPDATE_CHECK_MS) {
+                        Updater.checkAndInstall(this@MainActivity)
+                    }
+                }
             }
         }
     }
 
     override fun onStart() {
         super.onStart()
+        // À chaque retour au premier plan : un fichier poussé par adb est pris en compte sans réinstallation
+        Secrets.load(this)
         binding.tilePorte.start(Config.cameraPorte)
         binding.tileSas.start(Config.cameraSas)
     }
