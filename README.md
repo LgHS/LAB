@@ -23,6 +23,25 @@ nuki.token=…                          # jeton de l'API HTTP du bridge Nuki (é
 
 Sans `nuki.token`, l'app se compile mais la tuile Porte affiche « Nuki ? ».
 
+## Release (GitHub Actions)
+
+Le workflow [`android.yml`](.github/workflows/android.yml) compile et teste chaque push. Un tag
+`vX.Y.Z` publie en release GitHub un APK signé avec la clé release :
+
+```bash
+git tag v0.4.0 && git push origin v0.4.0
+```
+
+`versionCode` est dérivé du tag (majeur×10000 + mineur×100 + patch) : chaque tag doit être plus
+grand que le précédent, sinon Android refuse la mise à jour.
+
+Secrets du dépôt (Settings → Secrets and variables → Actions) : `RELEASE_KEYSTORE_BASE64`
+(keystore encodé en base64), `RELEASE_STORE_PASSWORD`, `RELEASE_KEY_ALIAS`,
+`RELEASE_KEY_PASSWORD`. **Ne jamais perdre ce keystore** : un APK signé avec une autre clé ne
+peut pas mettre à jour l'app installée (il faut désinstaller). Pour signer en local avec la même
+clé : `release.storeFile`, `release.storePassword`, `release.keyAlias`, `release.keyPassword`
+dans `local.properties`. Sans clé, le build release est signé avec la clé debug.
+
 Réglages locaux (moOde, bridge Nuki, météo) : `app/src/main/java/be/lghs/lab/Config.kt`.
 
 ## Arrêts TEC et trains SNCB
