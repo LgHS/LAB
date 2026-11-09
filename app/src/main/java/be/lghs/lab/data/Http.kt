@@ -10,6 +10,9 @@ import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
 
+/** Réponse HTTP autre que 200 : le code permet de distinguer « absent » (404) d'une vraie panne. */
+class HttpStatusException(val code: Int, url: String) : IOException("HTTP $code $url")
+
 object Http {
     private const val USER_AGENT = "little-android-brother/0.3 (Android; +https://lghs.be)"
 
@@ -28,7 +31,7 @@ object Http {
                 conn.readTimeout = readTimeoutMs
                 conn.setRequestProperty("User-Agent", USER_AGENT)
                 conn.setRequestProperty("Accept", accept)
-                if (conn.responseCode != 200) throw IOException("HTTP ${conn.responseCode} $url")
+                if (conn.responseCode != 200) throw HttpStatusException(conn.responseCode, url)
                 conn.inputStream.use(read) // gzip décompressé de manière transparente
             }
         } finally {

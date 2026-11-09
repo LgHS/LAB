@@ -14,6 +14,7 @@ import androidx.core.content.pm.PackageInfoCompat
 import be.lghs.lab.BuildConfig
 import be.lghs.lab.Config
 import be.lghs.lab.data.Http
+import be.lghs.lab.data.HttpStatusException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -38,7 +39,13 @@ object Updater {
     suspend fun checkAndInstall(context: Context): Boolean {
         // Build debug : clé debug, une release ne pourrait pas l'écraser
         if (BuildConfig.DEBUG) return false
-        val release = Release.parse(JSONObject(Http.getText(API))) ?: return false
+        val latest = try {
+            Http.getText(API)
+        } catch (e: HttpStatusException) {
+            if (e.code == 404) return false // aucune release publiée : rien à faire, pas d'alerte
+            throw e
+        }
+        val release = Release.parse(JSONObject(latest)) ?: return false
         if (release.versionCode <= BuildConfig.VERSION_CODE || release.tag == rejectedTag) return false
         if (!canInstall(context)) {
             Log.w(TAG, "${release.tag} disponible, mais installation non autorisée (appops REQUEST_INSTALL_PACKAGES)")

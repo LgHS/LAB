@@ -47,8 +47,9 @@ Le workflow [`android.yml`](.github/workflows/android.yml) compile et teste chaq
 git tag v0.4.0 && git push origin v0.4.0
 ```
 
-`versionCode` est dérivé du tag (majeur×10000 + mineur×100 + patch) : chaque tag doit être plus
-grand que le précédent, sinon Android refuse la mise à jour.
+`versionCode` est dérivé du tag (majeur×10000 + mineur×100 + patch, mineur et patch < 100) :
+chaque tag doit être plus grand que le précédent, sinon Android refuse la mise à jour. Ne poser
+les tags que sur `main`.
 
 Secrets du dépôt (Settings → Secrets and variables → Actions) : `RELEASE_KEYSTORE_BASE64`
 (keystore encodé en base64), `RELEASE_STORE_PASSWORD`, `RELEASE_KEY_ALIAS`,

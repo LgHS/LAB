@@ -6,9 +6,9 @@ import org.json.JSONObject
 data class Release(val tag: String, val versionCode: Int, val apkUrl: String) {
 
     companion object {
-        /** vX.Y.Z → versionCode, même formule que app/build.gradle.kts. */
+        /** vX.Y.Z → versionCode, même formule et mêmes limites (mineur, patch < 100) que app/build.gradle.kts. */
         fun versionCode(tag: String): Int? =
-            Regex("""v?(\d+)\.(\d+)\.(\d+)""").matchEntire(tag)?.destructured
+            Regex("""v?(\d+)\.(\d{1,2})\.(\d{1,2})""").matchEntire(tag)?.destructured
                 ?.let { (major, minor, patch) -> major.toInt() * 10_000 + minor.toInt() * 100 + patch.toInt() }
 
         /** Réponse de `/releases/latest` → release installable, ou null (brouillon, tag invalide, pas d'APK). */

@@ -15,6 +15,8 @@ class ReleaseTest {
         assertEquals(400, Release.versionCode("v0.4.0"))
         assertEquals(301, Release.versionCode("0.3.1"))
         assertEquals(10_203, Release.versionCode("v1.2.3"))
+        assertEquals(19_999, Release.versionCode("v1.99.99"))
+        assertNull(Release.versionCode("v0.3.100")) // collisionnerait avec v0.4.0
         assertNull(Release.versionCode("v0.4"))
         assertNull(Release.versionCode("nightly"))
     }

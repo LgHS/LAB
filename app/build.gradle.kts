@@ -14,12 +14,13 @@ fun setting(env: String, key: String): String? =
 
 // Version : passée par la CI depuis le tag (v0.4.0 → -PappVersion=0.4.0), sinon valeur par défaut.
 // versionCode = majeur×10000 + mineur×100 + patch : toujours croissant d'une release à l'autre,
-// condition pour qu'Android accepte la mise à jour.
+// condition pour qu'Android accepte la mise à jour. Mineur et patch < 100, sinon collision
+// (0.3.100 donnerait le même code que 0.4.0).
 val releaseVersion = findProperty("appVersion") as String?
 val appVersion = releaseVersion ?: "0.3.1"
-val appVersionCode = Regex("""(\d+)\.(\d+)\.(\d+)""").matchEntire(appVersion)
+val appVersionCode = Regex("""(\d+)\.(\d{1,2})\.(\d{1,2})""").matchEntire(appVersion)
     ?.destructured?.let { (major, minor, patch) -> major.toInt() * 10_000 + minor.toInt() * 100 + patch.toInt() }
-    ?: error("appVersion « $appVersion » invalide : attendu X.Y.Z (tag vX.Y.Z)")
+    ?: error("appVersion « $appVersion » invalide : attendu X.Y.Z (tag vX.Y.Z), mineur et patch < 100")
 
 // Clé de signature release : la même pour tous les builds (CI et local), sinon Android refuse
 // d'installer une mise à jour par-dessus. Absente → clé debug (dev local uniquement).
