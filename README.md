@@ -12,7 +12,10 @@ météo, musique moOde, prochains départs TEC et SNCB. Tourne comme écran d'ac
 Installer le build **release** sur la box : en debug, l'app est ~50× plus lente (le
 chargement des horaires TEC passe de 0,4 s à 20 s).
 
-Réglages privés dans `local.properties` (ignoré par git, jamais dans ce dépôt public) :
+## Secrets
+
+Les secrets ne sont pas dans l'APK (dépôt et releases publics). Fichier `secrets.properties`,
+jamais dans ce dépôt :
 
 ```properties
 tec.apiKey=…                          # clé GTFS-RT TEC (https://gtfsrt.tectime.be)
@@ -21,7 +24,19 @@ camera.sas=rtsps://…:7441/…?enableSrtp
 nuki.token=…                          # jeton de l'API HTTP du bridge Nuki (état de la porte)
 ```
 
-Sans `nuki.token`, l'app se compile mais la tuile Porte affiche « Nuki ? ».
+À déposer une fois sur la box, puis redémarrer l'app :
+
+```bash
+adb shell content write --uri content://be.lghs.lab.secrets/secrets < secrets.properties
+adb shell am force-stop be.lghs.lab && adb shell am start -n be.lghs.lab/.MainActivity
+```
+
+Le fichier va dans le stockage privé de l'app (le stockage partagé `Android/data` n'est pas
+accessible à adb sur la box) et survit aux mises à jour. Seul adb peut l'écrire, personne ne
+peut le relire par ce biais. Pour changer une valeur, renvoyer le fichier complet.
+
+En dev, les mêmes clés dans `local.properties` (ignoré par git) servent de valeurs par défaut,
+compilées dans l'APK local. Sans `nuki.token`, la tuile Porte affiche « Nuki ? ».
 
 ## Release (GitHub Actions)
 

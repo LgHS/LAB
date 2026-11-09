@@ -113,6 +113,8 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
+        // À chaque retour au premier plan : un fichier poussé par adb est pris en compte sans réinstallation
+        Secrets.load(this)
         binding.tilePorte.start(Config.cameraPorte)
         binding.tileSas.start(Config.cameraSas)
     }
