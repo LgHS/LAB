@@ -229,7 +229,7 @@ class TransportPanel(private val b: PanelTransportBinding, scope: LifecycleCorou
     private fun placeholder(message: String) = TextView(context).apply {
         text = message
         setTextColor(dim)
-        textSize = 14f
+        textSize = 17f
         setPadding(0, 6, 0, 6)
     }
 

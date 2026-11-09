@@ -38,6 +38,13 @@ android {
         // Affiché à l'écran : « -dev » distingue un build local d'une release CI
         versionName = if (releaseVersion != null) appVersion else "$appVersion-dev"
 
+        // -Ppreview : s'installe à côté de l'app de la box (be.lghs.lab.preview) pour une capture
+        // d'écran, sans toucher à l'app en place ni à sa mise à jour automatique
+        if (findProperty("preview") != null) {
+            applicationIdSuffix = ".preview"
+            versionNameSuffix = "-preview"
+        }
+
         fun secret(name: String) = "\"${local.getProperty(name, "")}\""
         buildConfigField("String", "TEC_API_KEY", secret("tec.apiKey"))
         buildConfigField("String", "CAMERA_PORTE_URL", secret("camera.porte"))

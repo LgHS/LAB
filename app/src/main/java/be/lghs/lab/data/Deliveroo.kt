@@ -21,11 +21,14 @@ data class Delivery(
     val delivered: Boolean,
     /** Horodatage `maj` = heure de lecture côté lghs.be (sert de référence au décompte). */
     val updatedEpochSec: Long?,
+    /** Commande livrée : heure d'arrivée (`livraison_estimee`), pour masquer une vieille commande. */
+    val deliveredEpochSec: Long? = null,
 )
 
 /**
  * https://lghs.be/deliveroo/?json : `null` hors commande, sinon
- * `{"restaurant", "livraison", "code_livreur", "statut", "maj"}`.
+ * `{"restaurant", "livraison", "livraison_estimee", "code_livreur", "statut", "maj"}`
+ * (`livraison_estimee` en ISO 8601 : « 2026-11-07T14:45:54+01:00 »).
  *
  * Pas de champ d'étape : « livrée » et « à proximité » sont déduits des textes Deliveroo
  * (français), le reste (durée, horodatage) des valeurs.
@@ -61,6 +64,7 @@ object DeliverooRepository {
             near = near,
             delivered = delivered,
             updatedEpochSec = updated,
+            deliveredEpochSec = if (delivered) parseIsoDate(field("livraison_estimee")) else null,
         )
     }
 
@@ -79,8 +83,13 @@ object DeliverooRepository {
         return rest.replaceFirstChar { it.titlecase(Locale.FRENCH) }.ifEmpty { status }
     }
 
-    private fun parseDate(value: String): Long? = try {
-        SimpleDateFormat("yyyy-MM-dd HH:mm:ss Z", Locale.ROOT).parse(value)?.time?.div(1000)
+    private fun parseDate(value: String): Long? = parse(value, "yyyy-MM-dd HH:mm:ss Z")
+
+    /** « 2026-11-07T14:45:54+01:00 » */
+    private fun parseIsoDate(value: String): Long? = parse(value, "yyyy-MM-dd'T'HH:mm:ssXXX")
+
+    private fun parse(value: String, pattern: String): Long? = try {
+        SimpleDateFormat(pattern, Locale.ROOT).parse(value)?.time?.div(1000)
     } catch (_: ParseException) {
         null
     }

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="30dp"
+    android:layout_height="40dp"
     android:gravity="center_vertical"
     android:orientation="horizontal">
 
@@ -12,20 +12,20 @@
         android:background="@drawable/badge_bg"
         android:fontFamily="sans-serif-medium"
         android:gravity="center"
-        android:minWidth="36dp"
-        android:paddingHorizontal="5dp"
-        android:textSize="14sp" />
+        android:minWidth="46dp"
+        android:paddingHorizontal="6dp"
+        android:textSize="18sp" />
 
     <TextView
         android:id="@+id/destination"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="10dp"
+        android:layout_marginStart="12dp"
         android:layout_weight="1"
         android:ellipsize="end"
         android:maxLines="1"
         android:textColor="@color/text"
-        android:textSize="15sp" />
+        android:textSize="20sp" />
 
     <TextView
         android:id="@+id/last"
@@ -40,7 +40,7 @@
         android:paddingVertical="1dp"
         android:text="DERNIER"
         android:textColor="#FFFFFF"
-        android:textSize="10sp"
+        android:textSize="12sp"
         android:visibility="gone" />
 
     <TextView
@@ -50,7 +50,7 @@
         android:layout_marginStart="10dp"
         android:maxLines="1"
         android:textColor="@color/text_faint"
-        android:textSize="12sp" />
+        android:textSize="15sp" />
 
     <TextView
         android:id="@+id/time"
@@ -59,6 +59,6 @@
         android:layout_marginStart="12dp"
         android:fontFamily="sans-serif-medium"
         android:gravity="end"
-        android:minWidth="56dp"
-        android:textSize="15sp" />
+        android:minWidth="72dp"
+        android:textSize="20sp" />
 </LinearLayout>

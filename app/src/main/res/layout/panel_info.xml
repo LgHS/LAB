@@ -60,9 +60,11 @@
             android:id="@+id/clock"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:fontFamily="sans-serif-medium"
+            android:fontFamily="sans-serif"
+            android:textStyle="bold"
+            android:includeFontPadding="false"
             android:textColor="@color/text"
-            android:textSize="22sp" />
+            android:textSize="42sp" />
     </LinearLayout>
 
     <!-- Commande Deliveroo en cours : code pour le livreur (masqué sinon) -->

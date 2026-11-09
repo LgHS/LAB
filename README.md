@@ -75,6 +75,12 @@ installée avec un APK signé par une autre clé (clé debug) ne se met pas à j
 désinstaller une fois, puis installer l'APK de la release. Les builds debug ne se mettent
 jamais à jour. Journal : `adb logcat -s Updater`.
 
+Aperçu d'un changement sur la box sans toucher à l'app en place : `./gradlew assembleRelease -Ppreview`
+installe à côté une app `be.lghs.lab.preview` (secrets à envoyer à
+`content://be.lghs.lab.preview.secrets/secrets`, mise à jour automatique désactivée). La
+désinstaller ensuite (`adb uninstall be.lghs.lab.preview`) et relancer
+`adb shell cmd package set-home-activity be.lghs.lab/.MainActivity`.
+
 La version installée est affichée en permanence en bas à gauche de l'écran : `v0.4.0` pour une release, suffixe `-dev`
 pour un build local (sans tag), `debug` pour un build debug.
 

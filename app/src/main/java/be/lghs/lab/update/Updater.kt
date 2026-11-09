@@ -37,8 +37,8 @@ object Updater {
 
     /** Installe la dernière release si elle est plus récente. true si une installation a été lancée. */
     suspend fun checkAndInstall(context: Context): Boolean {
-        // Build debug : clé debug, une release ne pourrait pas l'écraser
-        if (BuildConfig.DEBUG) return false
+        // Build debug (clé debug) ou preview (autre paquet) : une release ne pourrait pas l'écraser
+        if (BuildConfig.DEBUG || BuildConfig.APPLICATION_ID.endsWith(".preview")) return false
         val latest = try {
             Http.getText(API)
         } catch (e: HttpStatusException) {

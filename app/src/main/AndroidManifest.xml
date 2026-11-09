@@ -62,7 +62,7 @@
         <!-- Dépôt des secrets par adb : exporté, mais refuse tout appelant autre que shell/root -->
         <provider
             android:name=".SecretsProvider"
-            android:authorities="be.lghs.lab.secrets"
+            android:authorities="${applicationId}.secrets"
             android:exported="true" />
     </application>
 </manifest>

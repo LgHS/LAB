@@ -57,5 +57,29 @@ class DeliverooTest {
         assertTrue(d.delivered)
         assertFalse(d.near)
         assertNull(d.etaEpochSec)
+        assertNull(d.deliveredEpochSec) // ancien format sans livraison_estimee
+    }
+
+    /** Format du 2026-11-09 : livraison_estimee donne l'heure d'arrivée d'une commande livrée. */
+    @Test
+    fun deliveredWithArrivalTime() {
+        val d = DeliverooRepository.parse(
+            """{"restaurant": "Burger King - Liège Médiacité", "livraison": null, "date_livraison": "2026-11-07",
+               "livraison_debut": null, "livraison_fin": null, "livraison_estimee": "2026-11-07T14:45:54+01:00",
+               "code_livreur": "83", "statut": "Votre commande a mis 23 minutes à arriver. Bon appétit !",
+               "commande_le": "Commandé le 7 novembre 2026", "maj": "2026-11-09 16:10:24 +0100"}""",
+        )!!
+        assertTrue(d.delivered)
+        assertEquals(1794059154L, d.deliveredEpochSec)
+    }
+
+    @Test
+    fun arrivalTimeIgnoredWhileOnTheWay() {
+        val d = DeliverooRepository.parse(
+            """{"restaurant": "Burger King", "livraison": "Environ 7 minutes", "livraison_estimee": "2026-11-07T14:45:54+01:00",
+               "code_livreur": "83", "statut": "La commande est en cours de livraison", "maj": "2026-11-07 14:38:54 +0100"}""",
+        )!!
+        assertFalse(d.delivered)
+        assertNull(d.deliveredEpochSec)
     }
 }
