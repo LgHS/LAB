@@ -60,7 +60,9 @@ object DeliverooRepository {
             restaurant = restaurant,
             status = stripRestaurant(rawStatus, restaurant),
             window = window,
-            etaEpochSec = if (minutes != null && updated != null) updated + minutes * 60L else null,
+            // Décompte Deliveroo « Environ 7 minutes » (le plus frais), sinon heure estimée par lghs.be
+            etaEpochSec = (if (minutes != null && updated != null) updated + minutes * 60L else null)
+                ?: if (delivered) null else parseIsoDate(field("livraison_estimee")),
             near = near,
             delivered = delivered,
             updatedEpochSec = updated,

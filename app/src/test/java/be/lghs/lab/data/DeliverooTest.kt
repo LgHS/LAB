@@ -73,6 +73,32 @@ class DeliverooTest {
         assertEquals(1794059154L, d.deliveredEpochSec)
     }
 
+    /** Commande réelle du 2026-11-14 en préparation : créneau + heure estimée par lghs.be. */
+    @Test
+    fun preparingUsesEstimatedArrival() {
+        val d = DeliverooRepository.parse(
+            """{"restaurant": "Burger King - Liège Saint-Lambert", "livraison": "15:15–15:30", "date_livraison": "2026-11-14",
+               "livraison_debut": "2026-11-14T15:15:00+01:00", "livraison_fin": "2026-11-14T15:30:00+01:00",
+               "livraison_estimee": "2026-11-14T15:23:18+01:00", "code_livreur": "83",
+               "statut": "Burger King - Liège Saint-Lambert prépare votre commande",
+               "commande_le": "Commandé le 14 novembre 2026", "maj": "2026-11-14 15:03:55 +0100"}""",
+        )!!
+        assertFalse(d.delivered)
+        assertEquals("15:15–15:30", d.window)
+        assertEquals(1794666198L, d.etaEpochSec) // 15:23:18
+        assertEquals("Prépare votre commande", d.status)
+    }
+
+    /** « Environ 7 minutes » (décompte Deliveroo, plus frais) prime sur l'heure estimée. */
+    @Test
+    fun liveCountdownWinsOverEstimate() {
+        val d = DeliverooRepository.parse(
+            """{"restaurant": "Burger King", "livraison": "Environ 7 minutes", "livraison_estimee": "2026-11-14T15:23:18+01:00",
+               "code_livreur": "83", "statut": "La commande est en cours de livraison", "maj": "2026-11-14 15:03:55 +0100"}""",
+        )!!
+        assertEquals(1794665035L + 7 * 60, d.etaEpochSec)
+    }
+
     @Test
     fun arrivalTimeIgnoredWhileOnTheWay() {
         val d = DeliverooRepository.parse(

@@ -104,14 +104,24 @@ class InfoPanel(private val b: PanelInfoBinding) {
         b.deliveryRestaurant.visibility = if (d.restaurant.isEmpty()) View.GONE else View.VISIBLE
         b.deliveryStatus.text = d.status
         b.deliveryLabel.text = if (d.near) "🛵 Livreur proche" else "🛵 Code livreur"
-        b.deliveryWindow.text = when {
-            d.delivered -> "✓ Livrée"
+        // Créneau « 15:15–15:30 » (pas une durée « Environ 7 minutes ») : rappelé sous l'heure
+        val slot = d.window.takeIf { ':' in it }
+        val (label, big, small) = when {
+            d.delivered -> Triple("Commande", "✓ Livrée", d.deliveredEpochSec?.let { "à ${hhmm.format(Date(it * 1000))}" })
             d.etaEpochSec != null -> {
                 val min = ceil((d.etaEpochSec - nowSec) / 60.0).toInt()
-                if (min <= 0) "Imminent" else "Dans $min min"
+                Triple("Arrivée prévue", hhmm.format(Date(d.etaEpochSec * 1000)), if (min <= 0) "imminent" else "dans $min min")
             }
-            else -> d.window.ifEmpty { "En cours" }
+            else -> Triple("Livraison", d.window.ifEmpty { "En cours" }, null)
         }
+        b.deliveryEtaLabel.text = label
+        b.deliveryWindow.text = big
+        b.deliveryCountdown.text = small
+        b.deliveryCountdown.visibility = if (small.isNullOrEmpty()) View.GONE else View.VISIBLE
+        // Le créneau n'est rappelé que sous une heure estimée (sinon il est déjà en gros)
+        val slotLine = slot?.takeIf { !d.delivered && d.etaEpochSec != null }?.let { "créneau $it" }
+        b.deliverySlot.text = slotLine
+        b.deliverySlot.visibility = if (slotLine == null) View.GONE else View.VISIBLE
         b.deliveryCard.alpha = if (d.delivered) 0.7f else 1f
         setNear(d.near)
     }
@@ -125,6 +135,9 @@ class InfoPanel(private val b: PanelInfoBinding) {
         b.deliveryRestaurant.setTextColor(onCard)
         b.deliveryLabel.setTextColor(if (near) NEAR_TEXT else context.getColor(R.color.deliveroo))
         b.deliveryWindow.setTextColor(if (near) NEAR_TEXT else context.getColor(R.color.deliveroo))
+        b.deliveryEtaLabel.setTextColor(if (near) NEAR_TEXT else context.getColor(R.color.deliveroo))
+        b.deliveryCountdown.setTextColor(onCard)
+        b.deliverySlot.setTextColor(if (near) NEAR_TEXT else context.getColor(R.color.text_dim))
         b.deliveryStatus.setTextColor(if (near) NEAR_TEXT else context.getColor(R.color.text_dim))
         if (near && deliveryPulse == null) {
             deliveryPulse = ObjectAnimator.ofFloat(b.deliveryCard, View.ALPHA, 1f, 0.6f).apply {
