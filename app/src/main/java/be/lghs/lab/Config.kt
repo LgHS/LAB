@@ -34,6 +34,8 @@ object Config {
     // Jeton : voir Secrets (nuki.token).
     const val NUKI_BRIDGE = "http://172.16.43.219:8080"
     const val NUKI_PORTE_ID = 1167243628L
+    /** Porte hors de l'état sûr (verrouillée et fermée) depuis ce délai : un son, une fois. */
+    const val DOOR_ALERT_AFTER_SEC = 5 * 60L
     const val MPD_PORT = 6600
 
     // Rue de la Loi, Outremeuse

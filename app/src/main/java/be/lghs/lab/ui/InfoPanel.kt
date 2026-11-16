@@ -17,7 +17,11 @@ import kotlin.math.ceil
 import kotlin.math.roundToInt
 
 /** Haut-droite : météo + heure, et code Deliveroo au-dessus de la musique s'il y a une commande. */
-class InfoPanel(private val b: PanelInfoBinding) {
+class InfoPanel(
+    private val b: PanelInfoBinding,
+    /** Livreur à proximité : appelé une fois par commande. */
+    private val onCourierNear: () -> Unit = {},
+) {
     private val hhmm = SimpleDateFormat("HH:mm", Locale.FRANCE)
 
     private var leet = false
@@ -67,6 +71,14 @@ class InfoPanel(private val b: PanelInfoBinding) {
             // Commande en cours ou aucune : la prochaine livraison repart de zéro, même avec le même code
             if (prefs.contains(KEY_DELIVERED_CODE)) prefs.edit().remove(KEY_DELIVERED_CODE).remove(KEY_DELIVERED_AT).apply()
         }
+        // Une fois par commande, même après un redémarrage de l'app. Le code livreur revient d'une
+        // commande à l'autre : on réarme quand la commande est livrée ou qu'il n'y en a plus.
+        if (delivery == null || delivery.delivered) {
+            if (prefs.contains(KEY_NEAR_ANNOUNCED)) prefs.edit().remove(KEY_NEAR_ANNOUNCED).apply()
+        } else if (delivery.near && !isStale(delivery, nowSec) && !prefs.getBoolean(KEY_NEAR_ANNOUNCED, false)) {
+            prefs.edit().putBoolean(KEY_NEAR_ANNOUNCED, true).apply()
+            onCourierNear()
+        }
         this.delivery = delivery
         renderDelivery(nowSec)
     }
@@ -86,12 +98,11 @@ class InfoPanel(private val b: PanelInfoBinding) {
     /** Appelé chaque seconde : compte à rebours et masquage d'une commande périmée. */
     fun renderDelivery(nowSec: Long) {
         val d = delivery
-        val age = d?.updatedEpochSec?.let { nowSec - it }
         val visible = d != null && when {
             // L'endpoint renvoie la commande livrée jusqu'à la suivante : 15 min après l'arrivée
             // (heure fournie par lghs.be, sinon moment où l'app l'a vue livrée) puis on masque
             d.delivered -> nowSec - (d.deliveredEpochSec ?: deliveredSeenAt ?: nowSec) < DELIVERED_SHOWN_SEC
-            else -> age == null || age < STALE_SEC // au cas où `maj` cesserait d'avancer
+            else -> !isStale(d, nowSec)
         }
         b.deliveryCard.visibility = if (visible) View.VISIBLE else View.GONE
         if (!visible || d == null) {
@@ -126,6 +137,9 @@ class InfoPanel(private val b: PanelInfoBinding) {
         setNear(d.near)
     }
 
+    /** Au cas où `maj` cesserait d'avancer. */
+    private fun isStale(d: Delivery, nowSec: Long) = d.updatedEpochSec?.let { nowSec - it >= STALE_SEC } == true
+
     /** Livreur à proximité : carte turquoise pleine qui pulse, c'est le moment du code. */
     private fun setNear(near: Boolean) {
         val bg = if (near) R.color.deliveroo else R.color.deliveroo_bg
@@ -159,6 +173,7 @@ class InfoPanel(private val b: PanelInfoBinding) {
         const val DELIVERED_SHOWN_SEC = 15 * 60L
         const val KEY_DELIVERED_CODE = "delivered_code"
         const val KEY_DELIVERED_AT = "delivered_at"
+        const val KEY_NEAR_ANNOUNCED = "near_announced"
         const val NEAR_TEXT = 0xFF06302C.toInt()
     }
 }

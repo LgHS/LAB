@@ -51,3 +51,25 @@ object NukiRepository {
         return DoorStatus(ok = false, label = problems.joinToString(" · "))
     }
 }
+
+/**
+ * Porte hors de l'état sûr (verrouillée et fermée) depuis [afterSec] : un seul signal, réarmé
+ * quand elle y revient. Une lecture ratée (bridge injoignable) ne remet pas le décompte à zéro.
+ */
+class DoorAlarm(private val afterSec: Long) {
+    private var unsafeSince: Long? = null
+    private var rung = false
+
+    /** true une seule fois par période hors état sûr, quand elle dépasse [afterSec]. */
+    fun update(status: DoorStatus, nowSec: Long): Boolean {
+        if (status.ok) {
+            unsafeSince = null
+            rung = false
+            return false
+        }
+        val since = unsafeSince ?: nowSec.also { unsafeSince = it }
+        if (rung || nowSec - since < afterSec) return false
+        rung = true
+        return true
+    }
+}

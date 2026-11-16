@@ -13,6 +13,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import be.lghs.lab.data.DeliverooRepository
+import be.lghs.lab.data.DoorAlarm
 import be.lghs.lab.data.MpdClient
 import be.lghs.lab.data.NukiRepository
 import be.lghs.lab.data.RendererClient
@@ -21,6 +22,7 @@ import be.lghs.lab.data.TransportConfigRepository
 import be.lghs.lab.data.TrainRepository
 import be.lghs.lab.data.WeatherRepository
 import be.lghs.lab.databinding.ActivityMainBinding
+import be.lghs.lab.ui.Chime
 import be.lghs.lab.ui.InfoPanel
 import be.lghs.lab.ui.MusicPanel
 import be.lghs.lab.ui.TransportPanel
@@ -39,6 +41,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var transport: TransportPanel
     private val tec = TecRepository()
     private lateinit var transportConfig: TransportConfigRepository
+    private lateinit var chime: Chime
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,7 +50,8 @@ class MainActivity : AppCompatActivity() {
         hideSystemBars()
         // Version déployée : tag de la release (v0.4.0), -dev pour un build local
         binding.appVersion.text = "v${BuildConfig.VERSION_NAME}" + if (BuildConfig.DEBUG) " debug" else ""
-        info = InfoPanel(binding.panelInfo)
+        chime = Chime(this)
+        info = InfoPanel(binding.panelInfo, onCourierNear = { chime.play(R.raw.deliveroo) })
         music = MusicPanel(binding.panelInfo.music, lifecycleScope)
         transport = TransportPanel(binding.panelTransport, lifecycleScope)
         transportConfig = TransportConfigRepository(this)
@@ -83,9 +87,12 @@ class MainActivity : AppCompatActivity() {
                 // Le bridge rate parfois une lecture Bluetooth : on garde le dernier état connu
                 // et on n'affiche « Nuki ? » qu'après 3 échecs d'affilée (15 s)
                 var nukiFailures = 0
+                val doorAlarm = DoorAlarm(afterSec = Config.DOOR_ALERT_AFTER_SEC)
                 poll("Nuki", everyMs = 5_000, onError = { if (++nukiFailures >= 3) binding.tilePorte.showDoor(null) }) {
-                    binding.tilePorte.showDoor(NukiRepository.fetch())
+                    val door = NukiRepository.fetch()
+                    binding.tilePorte.showDoor(door)
                     nukiFailures = 0
+                    if (doorAlarm.update(door, nowSec())) chime.play(R.raw.porte)
                 }
                 poll("Deliveroo", everyMs = 15_000) {
                     info.showDelivery(DeliverooRepository.fetch(), nowSec())
@@ -123,6 +130,7 @@ class MainActivity : AppCompatActivity() {
     override fun onStop() {
         binding.tilePorte.release()
         binding.tileSas.release()
+        chime.release()
         super.onStop()
     }
 
