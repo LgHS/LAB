@@ -110,9 +110,15 @@ internal class RtTrip(
         return when {
             relationship == NO_DATA -> null
             relationship == SKIPPED -> if (seq == sequence) null else delay
-            else -> delay ?: tripDelay
+            else -> delay ?: tripDelay ?: if (noPrediction) 0 else null
         }
     }
+
+    /**
+     * Aucun retard nulle part dans la course : le tram TEC ne publie que sa position (arrivée et
+     * départ vides). Elle roule, on prend l'horaire théorique pour les arrêts devant elle.
+     */
+    private val noPrediction = tripDelay == null && updates.none { it.third != null }
 
     companion object {
         const val SKIPPED = 1
