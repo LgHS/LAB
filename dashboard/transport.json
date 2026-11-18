@@ -5,6 +5,13 @@
     "windowMinutes": 15,
     "stops": [
       {
+        "id": "L2Tcurt2",
+        "name": "Curtius",
+        "lines": {
+          "T1": "Coronmeuse"
+        }
+      },
+      {
         "id": "Llgsime1",
         "name": "Simenon",
         "lines": {

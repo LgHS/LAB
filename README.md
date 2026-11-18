@@ -101,6 +101,7 @@ GitHub. L'app le relit au démarrage puis toutes les heures, sans réinstallatio
 - `tec.stops` : quais TEC (`stop_id` du GTFS, un quai = un sens). `lines` : lignes à afficher
   à ce quai → libellé de destination ; une ligne absente n'est pas affichée. Ordre = priorité :
   un bus passant par plusieurs quais est affiché au premier où sa ligne est listée.
+  Tram : quais `L1T…`/`L2T…` (un par sens), ligne `T1` (ex. `L2Tcurt2`, Curtius → Coronmeuse).
 - `sncb.routes` : trains directs entre deux gares (noms
   [iRail](https://api.irail.be/stations/?format=json&lang=fr)).
 
@@ -164,7 +165,7 @@ long sur OK. La touche Retour ne quitte pas l'écran d'accueil.
 | Livraison | [lghs.be/deliveroo](https://lghs.be/deliveroo/?json) : code livreur, décompte, « proche » en évidence avec le son `res/raw/deliveroo.mp3` (une fois par commande) ; commande livrée masquée 15 min après `livraison_estimee` | 15 s |
 | Musique | moOde : MPD (`idle`) + renderers Spotify/AirPlay/Deezer | instantané / 2 s |
 | Bus | GTFS-RT TEC (retards) + horaires générés | 30 s |
-| Trains | [iRail](https://api.irail.be) | 60 s |
+| Trains | [iRail](https://api.irail.be), trajet par trajet ; derniers trains gardés en cas d'erreur, « pas à jour depuis » après 5 min | 60 s |
 | Météo | [Open-Meteo](https://open-meteo.com) | 10 min |
 | Arrêts / trajets | `dashboard/` de ce dépôt | 1 h |
 | Mise à jour de l'app | Releases GitHub de ce dépôt | 5 min |

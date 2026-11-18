@@ -1,7 +1,8 @@
 {
-  "gtfsStart": "20261113",
-  "validUntil": "20270208",
+  "gtfsStart": "20261116",
+  "validUntil": "20270214",
   "stops": [
+    "L2Tcurt2",
     "Llgbavi0",
     "Llgbavi1",
     "Llgbavi3",

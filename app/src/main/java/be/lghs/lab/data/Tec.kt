@@ -67,9 +67,11 @@ class TecRepository {
 
     private class Candidate(val trip: RtTrip, val stop: ScheduledStop, val time: Long, val delay: Int)
 
-    /** "L0004-19058" → "4" */
-    private fun lineNumber(routeId: String): String =
-        routeId.substringAfterLast(':').substringBefore('-').drop(1).trimStart('0')
+    /** "L0004-19058" → "4" ; tram "L1000-23082" → "T1" (route_short_name du GTFS TEC). */
+    private fun lineNumber(routeId: String): String {
+        val number = routeId.substringAfterLast(':').substringBefore('-').drop(1).trimStart('0')
+        return TRAM_LINES[number] ?: number
+    }
 
     /** Minuit (heure belge) du jour de service "20260925". Les horaires GTFS peuvent dépasser 24:00. */
     private fun serviceDayStart(date: String): Long? {
@@ -84,6 +86,7 @@ class TecRepository {
     private companion object {
         const val URL = "https://gtfsrt.tectime.be/proto/RealTime/trips?key="
         val BRUSSELS: TimeZone = TimeZone.getTimeZone("Europe/Brussels")
+        val TRAM_LINES = mapOf("1000" to "T1")
     }
 }
 

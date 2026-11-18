@@ -12,6 +12,7 @@ import androidx.lifecycle.LifecycleCoroutineScope
 import be.lghs.lab.R
 import be.lghs.lab.data.BusDeparture
 import be.lghs.lab.data.TrainBoard
+import be.lghs.lab.data.TrainRoute
 import be.lghs.lab.databinding.PanelTransportBinding
 import be.lghs.lab.databinding.RowDepartureBinding
 import kotlinx.coroutines.android.awaitFrame
@@ -52,6 +53,9 @@ class TransportPanel(private val b: PanelTransportBinding, scope: LifecycleCorou
     private var busError: String? = null
     private var trainError: String? = null
 
+    /** Derniers trains reçus par trajet, avec l'heure de réception. */
+    private val trainBoards = mutableMapOf<TrainRoute, Pair<TrainBoard, Long>>()
+
     /** Nombre de vues de la liste « originale » (avant le repère et la copie). */
     private var listLength = 0
     private var looping = false
@@ -74,16 +78,24 @@ class TransportPanel(private val b: PanelTransportBinding, scope: LifecycleCorou
         render(nowSec)
     }
 
-    fun showTrains(boards: List<TrainBoard>?, nowSec: Long) {
-        if (boards == null) {
-            trainError = "SNCB indisponible"
-        } else {
-            trainError = null
-            trains = boards.flatMap { board ->
-                board.departures.map {
-                    Row(it.epochSec, it.line, true, board.route.to,
-                        stationAndPlatform(board.route.from, it.platform), it.delaySec, it.canceled, it.last)
-                }
+    /**
+     * Une lecture par trajet, `null` = échec. iRail renvoie souvent des 504 passagers : un trajet
+     * en échec garde ses derniers trains, et on ne le signale qu'après [TRAIN_STALE_SEC].
+     */
+    fun showTrains(results: Map<TrainRoute, TrainBoard?>, nowSec: Long) {
+        trainBoards.keys.retainAll(results.keys) // trajet retiré de transport.json
+        results.forEach { (route, board) -> if (board != null) trainBoards[route] = board to nowSec }
+        val missing = results.keys.any { it !in trainBoards }
+        val oldest = trainBoards.values.minOfOrNull { it.second }
+        trainError = when {
+            missing -> "SNCB indisponible"
+            oldest != null && nowSec - oldest >= TRAIN_STALE_SEC -> "SNCB : pas à jour depuis ${hhmm.format(Date(oldest * 1000))}"
+            else -> null
+        }
+        trains = trainBoards.values.flatMap { (board, _) ->
+            board.departures.map {
+                Row(it.epochSec, it.line, true, board.route.to,
+                    stationAndPlatform(board.route.from, it.platform), it.delaySec, it.canceled, it.last)
             }
         }
         render(nowSec)
@@ -237,5 +249,6 @@ class TransportPanel(private val b: PanelTransportBinding, scope: LifecycleCorou
         const val SPEED_DP_PER_SEC = 24f
         const val PAUSE_NS = 3_000_000_000L
         const val IDLE_CHECK_MS = 1_000L
+        const val TRAIN_STALE_SEC = 5 * 60L
     }
 }

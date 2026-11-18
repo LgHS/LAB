@@ -103,9 +103,20 @@ class MainActivity : AppCompatActivity() {
                 poll("TEC", everyMs = 30_000, onError = { transport.showBusError("TEC indisponible", nowSec()) }) {
                     transport.showBuses(tec.fetch(transportConfig.awaitConfig()), nowSec())
                 }
-                poll("SNCB", everyMs = 60_000, onError = { transport.showTrains(null, nowSec()) }) {
+                // Un trajet à la fois : un 504 iRail sur l'un n'empêche pas la mise à jour des autres
+                poll("SNCB", everyMs = 60_000) {
                     val config = transportConfig.awaitConfig()
-                    transport.showTrains(config.trainRoutes.map { TrainRepository.fetch(it, config.trainsPerRoute) }, nowSec())
+                    val boards = config.trainRoutes.associateWith { route ->
+                        try {
+                            TrainRepository.fetch(route, config.trainsPerRoute)
+                        } catch (e: CancellationException) {
+                            throw e
+                        } catch (e: Exception) {
+                            Log.w("Dashboard", "SNCB ${route.from} → ${route.to}: ${e.message}")
+                            null
+                        }
+                    }
+                    transport.showTrains(boards, nowSec())
                 }
                 // Nouvelle release GitHub : une minute après le démarrage, puis toutes les 5 min
                 launch {
