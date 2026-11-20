@@ -19,7 +19,12 @@ import be.lghs.lab.data.NukiRepository
 import be.lghs.lab.data.RendererClient
 import be.lghs.lab.data.TecRepository
 import be.lghs.lab.data.TransportConfigRepository
+import be.lghs.lab.data.TrainBoard
+import be.lghs.lab.data.TrainCache
 import be.lghs.lab.data.TrainRepository
+import be.lghs.lab.data.TrainRoute
+import be.lghs.lab.data.TransportConfig
+import be.lghs.lab.data.SpaceApiRepository
 import be.lghs.lab.data.WeatherRepository
 import be.lghs.lab.databinding.ActivityMainBinding
 import be.lghs.lab.ui.Chime
@@ -41,6 +46,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var transport: TransportPanel
     private val tec = TecRepository()
     private lateinit var transportConfig: TransportConfigRepository
+    private lateinit var trainCache: TrainCache
     private lateinit var chime: Chime
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -54,6 +60,8 @@ class MainActivity : AppCompatActivity() {
         info = InfoPanel(binding.panelInfo, onCourierNear = { chime.play(R.raw.deliveroo) })
         music = MusicPanel(binding.panelInfo.music, lifecycleScope)
         transport = TransportPanel(binding.panelTransport, lifecycleScope)
+        trainCache = TrainCache(java.io.File(filesDir, "trains.json"))
+        transport.restoreTrains(trainCache.load(), nowSec())
         transportConfig = TransportConfigRepository(this)
 
         // Tout ne tourne que quand l'app est visible
@@ -63,6 +71,8 @@ class MainActivity : AppCompatActivity() {
                 // Seuls bus et trains attendent cette config : le reste démarre tout de suite.
                 launch {
                     transportConfig.load()
+                    // Preview : garde le dashboard/ embarqué (celui de la branche), pas celui de main
+                    if (BuildConfig.APPLICATION_ID.endsWith(".preview")) return@launch
                     poll("config transports", everyMs = Config.REMOTE_CONFIG_REFRESH_MS, retryMs = 5 * 60_000) {
                         transportConfig.refresh()
                     }
@@ -100,23 +110,18 @@ class MainActivity : AppCompatActivity() {
                 poll("météo", everyMs = 10 * 60_000, retryMs = 60_000) {
                     info.showWeather(WeatherRepository.fetch())
                 }
+                poll("SpaceAPI", everyMs = 60_000) {
+                    info.showSpace(SpaceApiRepository.fetch())
+                }
                 poll("TEC", everyMs = 30_000, onError = { transport.showBusError("TEC indisponible", nowSec()) }) {
                     transport.showBuses(tec.fetch(transportConfig.awaitConfig()), nowSec())
                 }
                 // Un trajet à la fois : un 504 iRail sur l'un n'empêche pas la mise à jour des autres
                 poll("SNCB", everyMs = 60_000) {
                     val config = transportConfig.awaitConfig()
-                    val boards = config.trainRoutes.associateWith { route ->
-                        try {
-                            TrainRepository.fetch(route, config.trainsPerRoute)
-                        } catch (e: CancellationException) {
-                            throw e
-                        } catch (e: Exception) {
-                            Log.w("Dashboard", "SNCB ${route.from} → ${route.to}: ${e.message}")
-                            null
-                        }
-                    }
+                    val boards = config.trainRoutes.associateWith { fetchTrains(it, config) }
                     transport.showTrains(boards, nowSec())
+                    trainCache.save(transport.savedTrains)
                 }
                 // Nouvelle release GitHub : une minute après le démarrage, puis toutes les 5 min
                 launch {
@@ -201,11 +206,34 @@ class MainActivity : AppCompatActivity() {
 
     private fun nowSec() = System.currentTimeMillis() / 1000
 
+    /**
+     * iRail renvoie des 504 par salves de quelques secondes : on réessaie deux fois avant
+     * d'attendre le tour suivant. null = échec, le panneau garde les derniers trains.
+     */
+    private suspend fun fetchTrains(route: TrainRoute, config: TransportConfig): TrainBoard? {
+        repeat(SNCB_ATTEMPTS) { attempt ->
+            try {
+                return TrainRepository.fetch(route, config.trainsPerRoute)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w("Dashboard", "SNCB ${route.from} → ${route.to} (essai ${attempt + 1}/$SNCB_ATTEMPTS): ${e.message}")
+                if (attempt < SNCB_ATTEMPTS - 1) delay(SNCB_RETRY_MS)
+            }
+        }
+        return null
+    }
+
     private fun hideSystemBars() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         WindowInsetsControllerCompat(window, window.decorView).apply {
             hide(WindowInsetsCompat.Type.systemBars())
             systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
+    }
+
+    private companion object {
+        const val SNCB_ATTEMPTS = 3
+        const val SNCB_RETRY_MS = 5_000L
     }
 }

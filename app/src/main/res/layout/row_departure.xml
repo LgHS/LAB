@@ -5,6 +5,17 @@
     android:gravity="center_vertical"
     android:orientation="horizontal">
 
+    <!-- Train suivant d'un train supprimé, affiché juste en dessous -->
+    <TextView
+        android:id="@+id/replaces"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="6dp"
+        android:text="↳"
+        android:textColor="@color/text_dim"
+        android:textSize="22sp"
+        android:visibility="gone" />
+
     <TextView
         android:id="@+id/line"
         android:layout_width="wrap_content"
@@ -52,13 +63,32 @@
         android:textColor="@color/text_faint"
         android:textSize="15sp" />
 
+    <ImageView
+        android:id="@+id/travelMode"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_marginStart="12dp"
+        android:importantForAccessibility="no"
+        android:visibility="gone" />
+
     <TextView
         android:id="@+id/time"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="12dp"
+        android:layout_marginStart="4dp"
         android:fontFamily="sans-serif-medium"
         android:gravity="end"
         android:minWidth="72dp"
+        android:textSize="20sp" />
+
+    <TextView
+        android:id="@+id/clock"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="14dp"
+        android:fontFamily="sans-serif-medium"
+        android:gravity="end"
+        android:minWidth="62dp"
+        android:textColor="@color/text"
         android:textSize="20sp" />
 </LinearLayout>

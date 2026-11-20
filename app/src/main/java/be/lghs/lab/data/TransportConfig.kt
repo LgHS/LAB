@@ -15,11 +15,45 @@ import java.io.File
 import java.io.IOException
 import java.io.InputStream
 
-/** Un quai TEC (un stop_id = un sens) et les lignes à y afficher → libellé de destination. */
-data class TecStop(val id: String, val name: String, val lines: Map<String, String>)
+/** Comment on va du space au quai ou à la gare (`"travelMode"` dans transport.json). */
+enum class TravelMode { FOOT, BIKE }
 
-/** Trains directs de [from] vers [to] (noms de gare iRail). */
-data class TrainRoute(val from: String, val to: String)
+/**
+ * Un quai TEC (un stop_id = un sens) et les lignes à y afficher → libellé de destination.
+ * [minutesFromSpace] : minutes pour aller du space au quai, null = inconnu.
+ */
+data class TecStop(
+    val id: String,
+    val name: String,
+    val lines: Map<String, String>,
+    val minutesFromSpace: Int? = null,
+    val travelMode: TravelMode = TravelMode.FOOT,
+)
+
+/** Trains directs de [from] vers [to] (noms de gare iRail), gare à [minutesFromSpace] du space. */
+data class TrainRoute(
+    val from: String,
+    val to: String,
+    val minutesFromSpace: Int? = null,
+    val travelMode: TravelMode = TravelMode.FOOT,
+)
+
+/** Peut-on encore attraper un départ en quittant le space maintenant ? */
+enum class Reach { TOO_LATE, HURRY, OK }
+
+/** Marge après le temps de marche pendant laquelle il faut partir tout de suite. */
+const val HURRY_MARGIN_SEC = 2 * 60
+
+/** null si le temps de marche est inconnu. [departureSec] = heure réelle (retard compris). */
+fun reach(departureSec: Long, nowSec: Long, minutesFromSpace: Int?): Reach? {
+    val walkSec = (minutesFromSpace ?: return null) * 60L
+    val left = departureSec - nowSec
+    return when {
+        left < walkSec -> Reach.TOO_LATE
+        left < walkSec + HURRY_MARGIN_SEC -> Reach.HURRY
+        else -> Reach.OK
+    }
+}
 
 class ScheduledStop(val stopId: String, val sequence: Int, val secondsOfDay: Int)
 
@@ -107,6 +141,14 @@ class TransportConfigRepository(context: Context) {
 
     private fun url(file: String) = Config.REMOTE_CONFIG_URL + file
 
+    /** `"minutesFromSpace": 4` (optionnel). */
+    private fun minutesFromSpace(json: JSONObject): Int? =
+        if (json.has("minutesFromSpace")) json.getInt("minutesFromSpace") else null
+
+    /** `"travelMode": "bike"` ; à pied par défaut. */
+    private fun travelMode(json: JSONObject): TravelMode =
+        if (json.optString("travelMode") == "bike") TravelMode.BIKE else TravelMode.FOOT
+
     private fun read(open: (String) -> InputStream): Triple<TransportConfig, String, String> {
         val transportText = open(TRANSPORT).use { it.readBytes().decodeToString() }
         val generatedText = open(GENERATED).use { it.readBytes().decodeToString() }
@@ -122,12 +164,19 @@ class TransportConfigRepository(context: Context) {
                 id = s.getString("id"),
                 name = s.getString("name"),
                 lines = lines.keys().asSequence().associateWith { lines.getString(it) },
+                minutesFromSpace = minutesFromSpace(s),
+                travelMode = travelMode(s),
             )
         }
         val routesJson = sncb.getJSONArray("routes")
         val routes = (0 until routesJson.length()).map { i ->
             val r = routesJson.getJSONObject(i)
-            TrainRoute(from = r.getString("from"), to = r.getString("to"))
+            TrainRoute(
+                from = r.getString("from"),
+                to = r.getString("to"),
+                minutesFromSpace = minutesFromSpace(r),
+                travelMode = travelMode(r),
+            )
         }
 
         val schedule = HashMap<String, MutableList<ScheduledStop>>()

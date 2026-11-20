@@ -38,6 +38,9 @@ object Config {
     const val DOOR_ALERT_AFTER_SEC = 5 * 60L
     const val MPD_PORT = 6600
 
+    /** Statut ouvert / membres / fermé du space (feu tricolore du site). */
+    const val SPACEAPI_URL = "https://spaceapi.lghs.be/"
+
     // Rue de la Loi, Outremeuse
     const val LATITUDE = 50.6419
     const val LONGITUDE = 5.5860

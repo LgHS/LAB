@@ -1,12 +1,13 @@
 {
   "_doc": "Départs affichés par le tableau de bord LgHS. Modifier puis pousser : la GitHub Action régénère les horaires TEC, l'app se met à jour dans l'heure.",
   "tec": {
-    "_doc": "Quais TEC (stop_id GTFS ; un quai = un sens). Ordre = priorité : un bus passant par plusieurs quais est affiché au premier où sa ligne est listée. lines : lignes affichées à ce quai → libellé de destination ; une ligne absente n'est pas affichée à ce quai.",
+    "_doc": "Quais TEC (stop_id GTFS ; un quai = un sens). Ordre = priorité : un bus passant par plusieurs quais est affiché au premier où sa ligne est listée. lines : lignes affichées à ce quai → libellé de destination ; une ligne absente n'est pas affichée à ce quai. minutesFromSpace : minutes pour aller du space au quai à pied (itinéraire OpenStreetMap, arrondi au-dessus). travelMode : \"bike\" pour un trajet à vélo (à pied par défaut), picto à côté du chrono. Chrono du départ : rouge = trop tard pour l'attraper, jaune = partir maintenant, vert = on a le temps.",
     "windowMinutes": 15,
     "stops": [
       {
         "id": "L2Tcurt2",
         "name": "Curtius",
+        "minutesFromSpace": 12,
         "lines": {
           "T1": "Coronmeuse"
         }
@@ -14,6 +15,7 @@
       {
         "id": "Llgsime1",
         "name": "Simenon",
+        "minutesFromSpace": 3,
         "lines": {
           "11": "Liège Expo"
         }
@@ -21,6 +23,7 @@
       {
         "id": "Llgsime2",
         "name": "Simenon",
+        "minutesFromSpace": 3,
         "lines": {
           "11": "Rocourt"
         }
@@ -28,6 +31,7 @@
       {
         "id": "Llgongr3",
         "name": "Congrès",
+        "minutesFromSpace": 3,
         "lines": {
           "11": "Liège Expo"
         }
@@ -35,6 +39,7 @@
       {
         "id": "Llgongr1",
         "name": "Congrès",
+        "minutesFromSpace": 3,
         "lines": {
           "6": "Coronmeuse"
         }
@@ -42,6 +47,7 @@
       {
         "id": "Llgongr2",
         "name": "Congrès",
+        "minutesFromSpace": 3,
         "lines": {
           "6": "Guillemins"
         }
@@ -49,6 +55,7 @@
       {
         "id": "Llgongr4",
         "name": "Congrès",
+        "minutesFromSpace": 4,
         "lines": {
           "11": "Rocourt"
         }
@@ -56,6 +63,7 @@
       {
         "id": "Llgbavi3",
         "name": "Bavière",
+        "minutesFromSpace": 3,
         "lines": {
           "38": "Grivegnée"
         }
@@ -63,6 +71,7 @@
       {
         "id": "Llgbavi4",
         "name": "Bavière",
+        "minutesFromSpace": 3,
         "lines": {
           "38": "Fond des Tawes",
           "33": "Milmort",
@@ -72,6 +81,7 @@
       {
         "id": "Llgoutr1",
         "name": "Outremeuse",
+        "minutesFromSpace": 5,
         "lines": {
           "6": "Coronmeuse"
         }
@@ -79,6 +89,7 @@
       {
         "id": "Llgoutr2",
         "name": "Outremeuse",
+        "minutesFromSpace": 5,
         "lines": {
           "6": "Guillemins"
         }
@@ -86,6 +97,7 @@
       {
         "id": "Llgbavi1",
         "name": "Bavière",
+        "minutesFromSpace": 4,
         "lines": {
           "6": "Coronmeuse"
         }
@@ -93,6 +105,7 @@
       {
         "id": "Llgoutr3",
         "name": "Outremeuse",
+        "minutesFromSpace": 6,
         "lines": {
           "4": "Léopold",
           "24": "Léopold"
@@ -101,6 +114,7 @@
       {
         "id": "Llgtcha2",
         "name": "Tchantchès",
+        "minutesFromSpace": 6,
         "lines": {
           "4": "Léopold",
           "24": "Léopold"
@@ -109,6 +123,7 @@
       {
         "id": "Llgbavi0",
         "name": "Bavière",
+        "minutesFromSpace": 5,
         "lines": {
           "6": "Guillemins",
           "39": "Vottem P+R"
@@ -117,6 +132,7 @@
       {
         "id": "Llgtcha1",
         "name": "Tchantchès",
+        "minutesFromSpace": 6,
         "lines": {
           "4": "Fléron",
           "24": "Jupille"
@@ -125,16 +141,19 @@
     ]
   },
   "sncb": {
-    "_doc": "Trains directs entre deux gares (noms iRail : https://api.irail.be/stations/?format=json&lang=fr).",
+    "_doc": "Trains directs entre deux gares (noms iRail : https://api.irail.be/stations/?format=json&lang=fr). minutesFromSpace : minutes pour aller du space à la gare de départ (Saint-Lambert à pied, Guillemins à vélo, le vélo monte dans le train : 16 min d'itinéraire OpenStreetMap).",
     "departuresPerRoute": 3,
     "routes": [
       {
         "from": "Liège-Saint-Lambert",
-        "to": "Nessonvaux"
+        "to": "Nessonvaux",
+        "minutesFromSpace": 20
       },
       {
         "from": "Liège-Guillemins",
-        "to": "Welkenraedt"
+        "to": "Welkenraedt",
+        "minutesFromSpace": 16,
+        "travelMode": "bike"
       }
     ]
   }
