@@ -8,7 +8,10 @@ import android.view.View
 import android.view.ViewGroup
 import be.lghs.lab.R
 import be.lghs.lab.data.Delivery
+import be.lghs.lab.data.SpaceState
 import be.lghs.lab.data.Weather
+import be.lghs.lab.data.nextRain
+import be.lghs.lab.data.rainSummary
 import be.lghs.lab.databinding.PanelInfoBinding
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -49,10 +52,65 @@ class InfoPanel(
         b.clock.requestLayout()
     }
 
+    /** Feu tricolore : rouge, orange, vert ; seul le feu du statut actuel est allumé. */
+    fun showSpace(state: SpaceState) {
+        val lit = when (state) {
+            SpaceState.CLOSED -> 0
+            SpaceState.MEMBERS -> 1
+            SpaceState.OPEN -> 2
+        }
+        val label = when (state) {
+            SpaceState.CLOSED -> "Fermé"
+            SpaceState.MEMBERS -> "Membres"
+            SpaceState.OPEN -> "Ouvert"
+        }
+        // Pastille teintée de la couleur du statut ; seul le feu actuel est allumé
+        listOf(b.spaceLight0, b.spaceLight1, b.spaceLight2).forEachIndexed { i, light ->
+            light.backgroundTintList = ColorStateList.valueOf(if (i == lit) SPACE_LIGHTS[i] else LIGHT_OFF)
+        }
+        b.spaceLabel.text = label
+        b.spaceLabel.setTextColor(SPACE_LIGHTS[lit])
+        b.spaceStatus.backgroundTintList = ColorStateList.valueOf((SPACE_LIGHTS[lit] and 0x00FFFFFF) or 0x33000000)
+        b.spaceStatus.visibility = View.VISIBLE
+    }
+
+    private var weather: Weather? = null
+    private var weatherExpanded: Boolean? = null
+
     fun showWeather(w: Weather) {
+        weather = w
         b.weatherIcon.text = w.icon
         b.weatherTemp.text = "${w.temperature.roundToInt()}°"
-        b.weatherDetails.text = "↓${w.min.roundToInt()}° ↑${w.max.roundToInt()}° · 💧${w.rainChance}%"
+        b.rainChart.show(w.rain)
+        b.rainSummary.text = rainSummary(w.rain).orEmpty()
+        b.rainSummary.setTextColor(context.getColor(if (w.rain.any { it.raining }) R.color.rain else R.color.text))
+        renderWeatherDetails()
+    }
+
+    /**
+     * Sans commande Deliveroo, la carte météo prend de la place : heure et température en plus
+     * grand, pluie des 2 prochaines heures. Avec une commande, une seule ligne comme avant.
+     */
+    private fun setWeatherExpanded(expanded: Boolean) {
+        if (expanded == weatherExpanded) return
+        weatherExpanded = expanded
+        b.weatherRain.visibility = if (expanded) View.VISIBLE else View.GONE
+        b.weatherIcon.textSize = if (expanded) 38f else 30f
+        b.weatherTemp.textSize = if (expanded) 46f else 34f
+        b.clock.textSize = if (expanded) 60f else 42f
+        renderWeatherDetails()
+    }
+
+    private fun renderWeatherDetails() {
+        val w = weather ?: return
+        val minMax = "↓${w.min.roundToInt()}° ↑${w.max.roundToInt()}°"
+        // Replié : la pluie tient en « 🌧 19:00 » (ou « 🌧 » s'il pleut déjà)
+        val rain = when {
+            weatherExpanded != false -> null
+            w.rain.firstOrNull()?.raining == true -> "🌧"
+            else -> nextRain(w.rain)?.let { "🌧 $it" }
+        }
+        b.weatherDetails.text = listOfNotNull(minMax, rain).joinToString(" · ")
     }
 
     private var delivery: Delivery? = null
@@ -105,6 +163,7 @@ class InfoPanel(
             else -> !isStale(d, nowSec)
         }
         b.deliveryCard.visibility = if (visible) View.VISIBLE else View.GONE
+        setWeatherExpanded(!visible)
         if (!visible || d == null) {
             setNear(false)
             return
@@ -170,6 +229,9 @@ class InfoPanel(
         const val STALE_SEC = 15 * 60L
         const val LEET_TIME = "13:37"
         const val LEET_GREEN = 0xFF39FF14.toInt()
+        /** Feu tricolore du statut : fermé, membres, ouvert. */
+        val SPACE_LIGHTS = intArrayOf(0xFFFF4D4D.toInt(), 0xFFFFA726.toInt(), 0xFF5FD38D.toInt())
+        const val LIGHT_OFF = 0x33FFFFFF
         const val DELIVERED_SHOWN_SEC = 15 * 60L
         const val KEY_DELIVERED_CODE = "delivered_code"
         const val KEY_DELIVERED_AT = "delivered_at"

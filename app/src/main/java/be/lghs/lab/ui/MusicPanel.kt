@@ -1,11 +1,10 @@
 package be.lghs.lab.ui
 
 import android.graphics.BitmapFactory
-import android.graphics.RenderEffect
-import android.graphics.Shader
-import android.os.Build
+import android.graphics.Bitmap
 import android.os.SystemClock
 import android.view.View
+import android.widget.TextView
 import androidx.lifecycle.LifecycleCoroutineScope
 import be.lghs.lab.data.Http
 import be.lghs.lab.data.NowPlaying
@@ -26,15 +25,10 @@ class MusicPanel(private val b: PanelMusicBinding, private val scope: LifecycleC
     init {
         // Fond flouté qui suit les coins arrondis de la carte
         b.root.clipToOutline = true
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            b.coverBg.setRenderEffect(RenderEffect.createBlurEffect(BLUR_PX, BLUR_PX, Shader.TileMode.CLAMP))
-        } else {
-            b.coverBg.alpha = 0.15f // sans flou, juste une teinte discrète
-        }
         // Pochette carrée, calée sur la hauteur du panneau
         b.root.addOnLayoutChangeListener { _, left, top, right, bottom, _, _, _, _ ->
             val padding = b.musicContent.paddingTop + b.musicContent.paddingBottom
-            val size = minOf(bottom - top - padding, ((right - left) * 0.45f).toInt())
+            val size = minOf(bottom - top - padding, ((right - left) * 0.40f).toInt())
             val lp = b.cover.layoutParams
             if (lp.width != size || lp.height != size) {
                 b.cover.post { b.cover.layoutParams = lp.apply { width = size; height = size } }
@@ -55,11 +49,10 @@ class MusicPanel(private val b: PanelMusicBinding, private val scope: LifecycleC
             return
         }
         np!!
-        val source = listOfNotNull(np.source, np.format.takeIf { it.isNotEmpty() }).joinToString(" · ")
-        b.musicState.text = if (np.state == PlayState.PAUSE) "❚❚  En pause · $source" else "▶  $source"
-        b.musicTitle.text = np.title.ifEmpty { "—" }
-        b.musicArtist.text = np.artist
-        b.musicAlbum.text = np.album
+        b.musicState.text = if (np.state == PlayState.PAUSE) "❚❚  En pause · ${np.source}" else "▶  ${np.source}"
+        val title = np.title.ifEmpty { "—" }
+        setIfChanged(b.musicTitle, title)
+        setIfChanged(b.musicArtist, np.artist)
         b.musicContent.alpha = if (np.state == PlayState.PLAY) 1f else 0.6f
         loadCover(np.coverUrl)
         tick()
@@ -68,14 +61,9 @@ class MusicPanel(private val b: PanelMusicBinding, private val scope: LifecycleC
     /** Avance la barre de progression entre deux événements MPD. */
     fun tick() {
         val np = current
-        if (np != null && np.source != "moOde" && np.durationSec > 0) {
-            b.musicProgress.visibility = View.INVISIBLE
-            b.musicTime.text = mmss(np.durationSec)
-            return
-        }
-        if (np == null || np.durationSec <= 0) {
-            b.musicProgress.visibility = View.INVISIBLE
-            b.musicTime.text = ""
+        // Spotify, AirPlay, Deezer : moOde ne donne pas la position de lecture, pas de barre
+        if (np == null || np.source != "moOde" || np.durationSec <= 0) {
+            b.musicProgress.visibility = View.GONE
             return
         }
         val elapsed = if (np.state == PlayState.PLAY) {
@@ -84,7 +72,6 @@ class MusicPanel(private val b: PanelMusicBinding, private val scope: LifecycleC
         val clamped = min(elapsed, np.durationSec)
         b.musicProgress.visibility = View.VISIBLE
         b.musicProgress.progress = (clamped / np.durationSec * 1000).toInt()
-        b.musicTime.text = "${mmss(clamped)} / ${mmss(np.durationSec)}"
     }
 
     private fun loadCover(url: String?) {
@@ -95,23 +82,37 @@ class MusicPanel(private val b: PanelMusicBinding, private val scope: LifecycleC
         b.coverBg.setImageDrawable(null)
         if (url == null) return
         coverJob = scope.launch {
-            val bitmap = runCatching {
+            val (bitmap, blurred) = runCatching {
                 val bytes = Http.get(url) { it.readBytes() }
-                withContext(Dispatchers.Default) { BitmapFactory.decodeByteArray(bytes, 0, bytes.size) }
-            }.getOrNull()
+                withContext(Dispatchers.Default) {
+                    val full = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                    full to full?.let(::blur)
+                }
+            }.getOrNull() ?: (null to null)
             if (coverUrl == url) {
                 b.cover.setImageBitmap(bitmap)
-                b.coverBg.setImageBitmap(bitmap)
+                b.coverBg.setImageBitmap(blurred)
             }
         }
     }
 
-    private companion object {
-        const val BLUR_PX = 60f
+    /**
+     * Flou calculé une fois par pochette : réduite à quelques pixels puis agrandie avec lissage.
+     * Un flou RenderEffect est recalculé par le GPU à chaque image (défilements, chrono) : la box
+     * tombait à ~6 images/s.
+     */
+    private fun blur(source: Bitmap): Bitmap {
+        val tiny = Bitmap.createScaledBitmap(source, BLUR_TINY_PX, BLUR_TINY_PX, true)
+        return Bitmap.createScaledBitmap(tiny, BLUR_SMOOTH_PX, BLUR_SMOOTH_PX, true).also { tiny.recycle() }
     }
 
-    private fun mmss(sec: Double): String {
-        val s = sec.toInt()
-        return "%d:%02d".format(s / 60, s % 60)
+    private companion object {
+        const val BLUR_TINY_PX = 10
+        const val BLUR_SMOOTH_PX = 80
+    }
+
+    /** Réaffecter le même texte relancerait le défilement depuis le début ([TickerTextView]). */
+    private fun setIfChanged(view: TextView, text: String) {
+        if (view.text.toString() != text) view.text = text
     }
 }

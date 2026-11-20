@@ -12,5 +12,6 @@
     <color name="ontime">#5FD38D</color>
     <color name="tec">#F5C518</color>
     <color name="tram">#FF7A1A</color>
+    <color name="rain">#4FA3FF</color>
     <color name="sncb">#2F6FD6</color>
 </resources>

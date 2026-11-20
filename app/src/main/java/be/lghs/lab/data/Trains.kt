@@ -1,7 +1,9 @@
 package be.lghs.lab.data
 
 import android.net.Uri
+import org.json.JSONArray
 import org.json.JSONObject
+import java.io.File
 import java.util.Calendar
 import java.util.TimeZone
 
@@ -51,8 +53,13 @@ object TrainRepository {
                 d.epochSec, d.delaySec, d.line, d.platform, d.canceled,
                 last = next != null && serviceDay(next.epochSec) != serviceDay(d.epochSec),
             )
-        }.take(count)
-        return TrainBoard(route, result)
+        }
+        // Trains trop proches pour y arriver à pied (chrono en rouge) + [count] trains atteignables
+        val nowSec = System.currentTimeMillis() / 1000
+        val (tooLate, reachable) = result.partition {
+            reach(it.epochSec + it.delaySec, nowSec, route.minutesFromSpace) == Reach.TOO_LATE
+        }
+        return TrainBoard(route, tooLate + reachable.take(count))
     }
 
     private class RawDeparture(
@@ -65,4 +72,61 @@ object TrainRepository {
             timeInMillis = (epochSec - 4 * 3600) * 1000
             get(Calendar.YEAR) * 1000 + get(Calendar.DAY_OF_YEAR)
         }
+}
+
+/**
+ * Derniers trains reçus par trajet, gardés sur la box avec leur heure de réception : après un
+ * redémarrage (mise à jour, preview), une panne d'iRail n'affiche pas « SNCB indisponible ».
+ */
+class TrainCache(private val file: File) {
+
+    fun load(): List<Pair<TrainBoard, Long>> = runCatching { decode(file.readText()) }.getOrDefault(emptyList())
+
+    fun save(boards: List<Pair<TrainBoard, Long>>) {
+        runCatching {
+            val tmp = File(file.path + ".tmp")
+            tmp.writeText(encode(boards))
+            tmp.renameTo(file)
+        }
+    }
+
+    internal companion object {
+        fun encode(boards: List<Pair<TrainBoard, Long>>): String = JSONArray().apply {
+            boards.forEach { (board, receivedSec) ->
+                put(JSONObject().apply {
+                    put("from", board.route.from)
+                    put("to", board.route.to)
+                    put("received", receivedSec)
+                    put("departures", JSONArray().apply {
+                        board.departures.forEach { d ->
+                            put(JSONObject().apply {
+                                put("time", d.epochSec)
+                                put("delay", d.delaySec)
+                                put("line", d.line)
+                                put("platform", d.platform)
+                                put("canceled", d.canceled)
+                                put("last", d.last)
+                            })
+                        }
+                    })
+                })
+            }
+        }.toString()
+
+        fun decode(text: String): List<Pair<TrainBoard, Long>> {
+            val boards = JSONArray(text)
+            return (0 until boards.length()).map { i ->
+                val b = boards.getJSONObject(i)
+                val deps = b.getJSONArray("departures")
+                val departures = (0 until deps.length()).map { j ->
+                    val d = deps.getJSONObject(j)
+                    TrainDeparture(
+                        d.getLong("time"), d.getInt("delay"), d.getString("line"), d.getString("platform"),
+                        d.getBoolean("canceled"), d.getBoolean("last"),
+                    )
+                }
+                TrainBoard(TrainRoute(b.getString("from"), b.getString("to")), departures) to b.getLong("received")
+            }
+        }
+    }
 }

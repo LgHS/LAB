@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Voile sur la pochette floutée : une pochette claire ne doit pas noyer le texte (côté droit) -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <gradient
+        android:angle="0"
+        android:endColor="#B3000000"
+        android:startColor="#33000000" />
+</shape>

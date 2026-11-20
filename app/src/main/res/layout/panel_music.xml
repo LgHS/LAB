@@ -13,6 +13,12 @@
         android:importantForAccessibility="no"
         android:scaleType="centerCrop" />
 
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/music_scrim"
+        android:importantForAccessibility="no" />
+
     <TextView
         android:id="@+id/music_idle"
         android:layout_width="wrap_content"
@@ -50,42 +56,34 @@
             <TextView
                 android:id="@+id/music_state"
                 style="@style/SectionTitle"
-                android:layout_marginBottom="6dp"
+                android:layout_marginBottom="8dp"
                 android:ellipsize="end"
                 android:maxLines="1"
                 android:text="moOde"
-                android:textSize="12sp" />
+                android:textColor="@color/text_dim"
+                android:textSize="13sp" />
 
-            <TextView
+            <be.lghs.lab.ui.TickerTextView
                 android:id="@+id/music_title"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:ellipsize="end"
                 android:fontFamily="sans-serif"
-                android:maxLines="2"
+                android:shadowColor="#99000000"
+                android:shadowRadius="6"
                 android:textColor="@color/text"
-                android:textSize="26sp"
+                android:textSize="32sp"
                 android:textStyle="bold" />
 
-            <TextView
+            <be.lghs.lab.ui.TickerTextView
                 android:id="@+id/music_artist"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:ellipsize="end"
-                android:maxLines="1"
+                android:fontFamily="sans-serif-medium"
+                android:shadowColor="#99000000"
+                android:shadowRadius="6"
                 android:textColor="@color/text"
-                android:textSize="20sp" />
-
-            <TextView
-                android:id="@+id/music_album"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:textColor="@color/text_dim"
-                android:textSize="16sp" />
+                android:textSize="24sp" />
 
             <ProgressBar
                 android:id="@+id/music_progress"
@@ -96,14 +94,6 @@
                 android:max="1000"
                 android:progressBackgroundTint="#33FFFFFF"
                 android:progressTint="@color/accent" />
-
-            <TextView
-                android:id="@+id/music_time"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:textColor="@color/text_dim"
-                android:textSize="14sp" />
         </LinearLayout>
     </LinearLayout>
 </FrameLayout>

@@ -84,7 +84,8 @@ la release. Les builds debug ne se mettent jamais à jour. Journal : `adb logcat
 
 Aperçu d'un changement sur la box sans toucher à l'app en place : `./gradlew assembleRelease -Ppreview`
 installe à côté une app `be.lghs.lab.preview` (secrets à envoyer à
-`content://be.lghs.lab.preview.secrets/secrets`, mise à jour automatique désactivée). La
+`content://be.lghs.lab.preview.secrets/secrets`, mise à jour automatique désactivée, `dashboard/`
+de la branche au lieu de celui de `main`). La
 désinstaller ensuite (`adb uninstall be.lghs.lab.preview`) et relancer
 `adb shell cmd package set-home-activity be.lghs.lab/.MainActivity`.
 
@@ -106,6 +107,13 @@ GitHub. L'app le relit au démarrage puis toutes les heures, sans réinstallatio
   (`tec_planned_trips.csv` et `tec_services.csv`, générés eux aussi par l'Action).
 - `sncb.routes` : trains directs entre deux gares (noms
   [iRail](https://api.irail.be/stations/?format=json&lang=fr)).
+- `minutesFromSpace` (quai ou trajet, optionnel) : minutes pour aller du space au quai ou à la
+  gare. `travelMode` : `"bike"` pour y aller à vélo (Guillemins), à pied par défaut ; picto à
+  côté du chrono. Un départ qu'on n'a plus le temps d'attraper est masqué ; chrono (temps avant
+  le départ) en jaune s'il faut partir maintenant (2 min de marge), en vert si on a le temps.
+  Valeurs calculées avec l'itinéraire piéton OpenStreetMap
+  ([OSRM](https://routing.openstreetmap.de)) depuis Rue de la Loi 16, arrondies au-dessus.
+  Pour les trains, en plus des `departuresPerRoute` atteignables.
 
 Trouver un quai : `stops.txt` du [GTFS TEC](https://opendata.tec-wl.be/Current%20GTFS/).
 
@@ -167,8 +175,9 @@ long sur OK. La touche Retour ne quitte pas l'écran d'accueil.
 | Livraison | [lghs.be/deliveroo](https://lghs.be/deliveroo/?json) : code livreur, décompte, « proche » en évidence avec le son `res/raw/deliveroo.mp3` (une fois par commande) ; commande livrée masquée 15 min après `livraison_estimee` | 15 s |
 | Musique | moOde : MPD (`idle`) + renderers Spotify/AirPlay/Deezer | instantané / 2 s |
 | Bus | GTFS-RT TEC (retards) + horaires générés | 30 s |
-| Trains | [iRail](https://api.irail.be), trajet par trajet ; derniers trains gardés en cas d'erreur, « pas à jour depuis » après 5 min | 60 s |
-| Météo | [Open-Meteo](https://open-meteo.com) | 10 min |
+| Trains | [iRail](https://api.irail.be), trajet par trajet, 3 essais à 5 s d'écart ; heure réelle (retard compris) ; train supprimé barré, le suivant du même trajet juste en dessous (« ↳ ») ; derniers trains gardés en cas d'erreur, même après un redémarrage (`trains.json`), « pas à jour depuis » après 5 min | 60 s |
+| Météo | [Open-Meteo](https://open-meteo.com) ; sans commande Deliveroo, carte agrandie avec la pluie des 2 prochaines heures au quart d'heure (mm prévus) | 10 min |
+| Statut du space | [SpaceAPI](https://spaceapi.lghs.be/) : feu tricolore Fermé / Membres / Ouvert (`open`, `open_to_visitors`) | 60 s |
 | Arrêts / trajets | `dashboard/` de ce dépôt | 1 h |
 | Mise à jour de l'app | Releases GitHub de ce dépôt | 5 min |
 

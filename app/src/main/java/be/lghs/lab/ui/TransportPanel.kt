@@ -11,8 +11,11 @@ import androidx.core.text.inSpans
 import androidx.lifecycle.LifecycleCoroutineScope
 import be.lghs.lab.R
 import be.lghs.lab.data.BusDeparture
+import be.lghs.lab.data.Reach
 import be.lghs.lab.data.TrainBoard
 import be.lghs.lab.data.TrainRoute
+import be.lghs.lab.data.TravelMode
+import be.lghs.lab.data.reach
 import be.lghs.lab.databinding.PanelTransportBinding
 import be.lghs.lab.databinding.RowDepartureBinding
 import kotlinx.coroutines.android.awaitFrame
@@ -39,6 +42,7 @@ class TransportPanel(private val b: PanelTransportBinding, scope: LifecycleCorou
 
     /** Une ligne de la liste, bus ou train. */
     private class Row(
+        /** Heure de départ réelle (retard compris), pour le chrono et l'heure affichée. */
         val epochSec: Long,
         val line: String,
         val isTrain: Boolean,
@@ -47,6 +51,13 @@ class TransportPanel(private val b: PanelTransportBinding, scope: LifecycleCorou
         val delaySec: Int,
         val canceled: Boolean,
         val last: Boolean,
+        /** Minutes à pied jusqu'au quai ou à la gare, null = inconnu. */
+        val minutesFromSpace: Int?,
+        val travelMode: TravelMode,
+        /** Trajet SNCB (« from|to »), pour retrouver le train suivant d'un train supprimé. */
+        val route: String? = null,
+        /** Train supprimé : heure du suivant sur le même trajet, affiché juste en dessous. */
+        val nextSec: Long? = null,
     )
 
     private var buses: List<Row> = emptyList()
@@ -54,8 +65,14 @@ class TransportPanel(private val b: PanelTransportBinding, scope: LifecycleCorou
     private var busError: String? = null
     private var trainError: String? = null
 
-    /** Derniers trains reçus par trajet, avec l'heure de réception. */
-    private val trainBoards = mutableMapOf<TrainRoute, Pair<TrainBoard, Long>>()
+    /** Derniers trains reçus par trajet (gare de départ, d'arrivée), avec l'heure de réception. */
+    private val trainBoards = mutableMapOf<Pair<String, String>, Pair<TrainBoard, Long>>()
+
+    /** Trajets de la config actuelle (temps d'accès compris), connus après la première lecture. */
+    private var trainRoutes: Map<Pair<String, String>, TrainRoute> = emptyMap()
+
+    /** À sauver sur la box ([be.lghs.lab.data.TrainCache]). */
+    val savedTrains: List<Pair<TrainBoard, Long>> get() = trainBoards.values.toList()
 
     /** Nombre de vues de la liste « originale » (avant le repère et la copie). */
     private var listLength = 0
@@ -68,7 +85,8 @@ class TransportPanel(private val b: PanelTransportBinding, scope: LifecycleCorou
     fun showBuses(list: List<BusDeparture>, nowSec: Long) {
         buses = list.map {
             Row(it.epochSec, it.line, false, it.destination.ifEmpty { "Ligne ${it.line}" }, it.stop,
-                it.delaySec, canceled = false, last = it.last)
+                it.delaySec, canceled = false, last = it.last, minutesFromSpace = it.minutesFromSpace,
+                travelMode = it.travelMode)
         }
         busError = null
         render(nowSec)
@@ -84,23 +102,43 @@ class TransportPanel(private val b: PanelTransportBinding, scope: LifecycleCorou
      * en échec garde ses derniers trains, et on ne le signale qu'après [TRAIN_STALE_SEC].
      */
     fun showTrains(results: Map<TrainRoute, TrainBoard?>, nowSec: Long) {
-        trainBoards.keys.retainAll(results.keys) // trajet retiré de transport.json
-        results.forEach { (route, board) -> if (board != null) trainBoards[route] = board to nowSec }
-        val missing = results.keys.any { it !in trainBoards }
+        trainRoutes = results.keys.associateBy(::key)
+        trainBoards.keys.retainAll(trainRoutes.keys) // trajet retiré de transport.json
+        results.forEach { (route, board) -> if (board != null) trainBoards[key(route)] = board to nowSec }
+        val missing = trainRoutes.keys.any { it !in trainBoards }
         val oldest = trainBoards.values.minOfOrNull { it.second }
         trainError = when {
             missing -> "SNCB indisponible"
             oldest != null && nowSec - oldest >= TRAIN_STALE_SEC -> "SNCB : pas à jour depuis ${hhmm.format(Date(oldest * 1000))}"
             else -> null
         }
-        trains = trainBoards.values.flatMap { (board, _) ->
-            board.departures.map {
-                Row(it.epochSec, it.line, true, board.route.to,
-                    stationAndPlatform(board.route.from, it.platform), it.delaySec, it.canceled, it.last)
-            }
-        }
+        buildTrainRows()
         render(nowSec)
     }
+
+    /** Trains gardés sur la box, affichés en attendant la première réponse d'iRail. */
+    fun restoreTrains(saved: List<Pair<TrainBoard, Long>>, nowSec: Long) {
+        saved.forEach { trainBoards[key(it.first.route)] = it }
+        buildTrainRows()
+        render(nowSec)
+    }
+
+    private fun buildTrainRows() {
+        trains = trainBoards.flatMap { (key, entry) ->
+            val board = entry.first
+            val route = trainRoutes[key] ?: board.route
+            board.departures.mapIndexed { i, d ->
+                // iRail donne l'heure prévue : on affiche l'heure réelle, comme pour les bus
+                val next = if (d.canceled) board.departures.drop(i + 1).firstOrNull { !it.canceled } else null
+                Row(d.epochSec + d.delaySec, d.line, true, route.to,
+                    stationAndPlatform(route.from, d.platform), d.delaySec, d.canceled, d.last,
+                    route.minutesFromSpace, route.travelMode,
+                    route = "${route.from}|${route.to}", nextSec = next?.let { it.epochSec + it.delaySec })
+            }
+        }
+    }
+
+    private fun key(route: TrainRoute) = route.from to route.to
 
     /**
      * Recalcule la liste (minutes restantes comprises) sans refaire de requête.
@@ -110,11 +148,15 @@ class TransportPanel(private val b: PanelTransportBinding, scope: LifecycleCorou
     fun render(nowSec: Long) {
         val container = b.departureRows
         container.removeAllViews()
-        val rows = (buses + trains).filter { it.epochSec >= nowSec - 30 }.sortedBy { it.epochSec }
+        val rows = ordered((buses + trains)
+            .filter { it.epochSec >= nowSec - 30 }
+            // Départs qu'on n'a plus le temps d'attraper depuis le space : masqués
+            .filter { reach(it.epochSec, nowSec, it.minutesFromSpace) != Reach.TOO_LATE }
+            .sortedBy { it.epochSec })
         val messages = listOfNotNull(busError, trainError)
             .ifEmpty { if (rows.isEmpty()) listOf("Aucun départ") else emptyList() }
         fun addList() {
-            rows.forEach { container.addView(bind(it, nowSec)) }
+            rows.forEach { (row, replacement) -> container.addView(bind(row, nowSec, replacement)) }
             messages.forEach { container.addView(placeholder(it)) }
         }
         addList()
@@ -126,6 +168,21 @@ class TransportPanel(private val b: PanelTransportBinding, scope: LifecycleCorou
         applyLoopVisibility()
     }
 
+    /**
+     * Ordre chronologique, sauf le train qui suit un train supprimé (même trajet) : remonté
+     * juste sous lui, marqué comme remplaçant.
+     */
+    private fun ordered(rows: List<Row>): List<Pair<Row, Boolean>> {
+        val replacements = rows.filter { it.canceled && it.nextSec != null }.mapNotNull { canceled ->
+            rows.firstOrNull { it.route == canceled.route && it.epochSec == canceled.nextSec && !it.canceled }
+                ?.let { canceled to it }
+        }.toMap()
+        val moved = replacements.values.toSet()
+        return rows.filter { it !in moved }.flatMap { row ->
+            listOfNotNull(row to false, replacements[row]?.let { it to true })
+        }
+    }
+
     private fun applyLoopVisibility() {
         val container = b.departureRows
         for (i in listLength until container.childCount) {
@@ -133,8 +190,13 @@ class TransportPanel(private val b: PanelTransportBinding, scope: LifecycleCorou
         }
     }
 
-    private fun bind(row: Row, nowSec: Long): View {
+    private fun bind(row: Row, nowSec: Long, replacement: Boolean = false): View {
         val v = RowDepartureBinding.inflate(inflater, b.departureRows, false)
+        // Train suivant d'un train supprimé : « ↳ » et léger retrait, sous la ligne barrée
+        if (replacement) {
+            v.replaces.visibility = View.VISIBLE
+            v.root.setPaddingRelative((REPLACEMENT_INDENT_DP * context.resources.displayMetrics.density).toInt(), 0, 0, 0)
+        }
         v.line.text = row.line
         // Tram TEC (T1…) en orange, pour le distinguer des bus jaunes
         val badge = when {
@@ -158,19 +220,33 @@ class TransportPanel(private val b: PanelTransportBinding, scope: LifecycleCorou
         val minutes = ((row.epochSec - nowSec) / 60.0).roundToInt()
         v.time.text = when {
             minutes <= 0 -> "à quai"
-            minutes < 30 -> "$minutes min"
-            else -> hhmm.format(Date(row.epochSec * 1000))
+            minutes < 60 -> "$minutes min"
+            else -> "%d h %02d".format(minutes / 60, minutes % 60)
         }
+        // Heure de départ réelle (retard compris), toujours affichée
+        v.clock.text = hhmm.format(Date(row.epochSec * 1000))
+        // Avec le temps pour y aller : jaune s'il faut partir maintenant, vert sinon (ceux qu'on
+        // ne peut plus attraper sont masqués, le rouge ne sert qu'entre deux rafraîchissements)
+        val reach = reach(row.epochSec, nowSec, row.minutesFromSpace)
         v.time.setTextColor(
             when {
                 row.canceled -> late
-                minutes <= 2 -> accent
+                reach == Reach.TOO_LATE -> late
+                reach == Reach.HURRY -> accent
+                reach == null && minutes <= 2 -> accent
                 minutes < 30 -> onTime
                 else -> text
             }
         )
+        // À pied ou à vélo, de la couleur du chrono
+        if (reach != null && !row.canceled) {
+            v.travelMode.setImageResource(if (row.travelMode == TravelMode.BIKE) R.drawable.ic_bike else R.drawable.ic_walk)
+            v.travelMode.imageTintList = android.content.res.ColorStateList.valueOf(v.time.currentTextColor)
+            v.travelMode.visibility = View.VISIBLE
+        }
         if (row.canceled) {
             v.time.paintFlags = v.time.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG
+            v.clock.paintFlags = v.clock.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG
             v.destination.alpha = 0.5f
         }
         return v.root
@@ -257,5 +333,6 @@ class TransportPanel(private val b: PanelTransportBinding, scope: LifecycleCorou
         const val PAUSE_NS = 3_000_000_000L
         const val IDLE_CHECK_MS = 1_000L
         const val TRAIN_STALE_SEC = 5 * 60L
+        const val REPLACEMENT_INDENT_DP = 20
     }
 }

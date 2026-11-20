@@ -15,6 +15,9 @@ data class BusDeparture(
     val delaySec: Int,
     /** Dernière course de la journée pour cette ligne à ce quai. */
     val last: Boolean,
+    /** Minutes à pied du space jusqu'au quai, null = inconnu. */
+    val minutesFromSpace: Int? = null,
+    val travelMode: TravelMode = TravelMode.FOOT,
 )
 
 /**
@@ -63,7 +66,8 @@ class TecRepository {
             .map { c ->
                 val stop = stopsById.getValue(c.stop.stopId).value
                 val last = "${c.serviceDay}|${c.tripId}|${c.stop.stopId}" in config.lastTrips
-                BusDeparture(c.line, stop.lines.getValue(c.line), stop.name, c.time, c.delay, last)
+                BusDeparture(c.line, stop.lines.getValue(c.line), stop.name, c.time, c.delay, last,
+                    stop.minutesFromSpace, stop.travelMode)
             }
             .sortedBy { it.epochSec }
     }
