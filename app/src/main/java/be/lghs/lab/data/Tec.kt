@@ -36,36 +36,65 @@ class TecRepository {
         return withContext(Dispatchers.Default) { departures(config, trips, nowSec, until) }
     }
 
-    private fun departures(config: TransportConfig, trips: List<RtTrip>, nowSec: Long, until: Long): List<BusDeparture> {
+    internal fun departures(config: TransportConfig, trips: List<RtTrip>, nowSec: Long, until: Long): List<BusDeparture> {
         val schedule = config.schedule
         val stopsById = config.tecStops.withIndex().associateBy { it.value.id }
-        return trips.asSequence()
+        val realtime = trips.asSequence()
             .filter { !it.canceled }
             .flatMap { trip ->
                 val stops = schedule[trip.tripId] ?: return@flatMap emptySequence()
                 val midnight = serviceDayStart(trip.startDate) ?: return@flatMap emptySequence()
+                val line = lineNumber(trip.routeId)
                 stops.asSequence().mapNotNull { stop ->
                     val delay = trip.delayAt(stop.sequence) ?: return@mapNotNull null
-                    Candidate(trip, stop, midnight + stop.secondsOfDay + delay, delay)
+                    Candidate(trip.tripId, line, trip.startDate, stop, midnight + stop.secondsOfDay + delay, delay)
                 }
             }
+        // Une course du flux (même supprimée) n'est pas reprise depuis l'horaire théorique
+        val inFeed = trips.mapTo(HashSet()) { it.tripId }
+        return (realtime + planned(config, nowSec, inFeed))
             .filter { it.time in (nowSec - 30)..until }
             // Seules les lignes choisies pour ce quai (un quai retiré de transport.json mais
             // encore dans les horaires générés est ignoré aussi)
-            .filter { c -> stopsById[c.stop.stopId]?.value?.lines?.containsKey(lineNumber(c.trip.routeId)) == true }
+            .filter { c -> stopsById[c.stop.stopId]?.value?.lines?.containsKey(c.line) == true }
             // Un bus passe par plusieurs de nos quais : on garde le plus proche (ordre de Config)
-            .groupBy { it.trip.tripId }.values
+            .groupBy { it.tripId }.values
             .map { sameTrip -> sameTrip.minBy { stopsById.getValue(it.stop.stopId).index } }
             .map { c ->
                 val stop = stopsById.getValue(c.stop.stopId).value
-                val line = lineNumber(c.trip.routeId)
-                val last = "${c.trip.startDate}|${c.trip.tripId}|${c.stop.stopId}" in config.lastTrips
-                BusDeparture(line, stop.lines.getValue(line), stop.name, c.time, c.delay, last)
+                val last = "${c.serviceDay}|${c.tripId}|${c.stop.stopId}" in config.lastTrips
+                BusDeparture(c.line, stop.lines.getValue(c.line), stop.name, c.time, c.delay, last)
             }
             .sortedBy { it.epochSec }
     }
 
-    private class Candidate(val trip: RtTrip, val stop: ScheduledStop, val time: Long, val delay: Int)
+    /**
+     * Tram : le flux temps réel TEC ne le publie que par moments (rien à midi le 20/11, 5 courses
+     * sans retard à minuit le 19/11). Courses du jour à l'horaire théorique, sauf celles du flux.
+     */
+    private fun planned(config: TransportConfig, nowSec: Long, inFeed: Set<String>): Sequence<Candidate> {
+        // Jour de service d'aujourd'hui et de la veille (horaires GTFS au-delà de 24:00)
+        val days = listOf(nowSec, nowSec - 24 * 3600).map(::serviceDate)
+        return config.plannedTrips.asSequence()
+            .filter { (trip, _) -> trip !in inFeed }
+            .flatMap { (trip, planned) ->
+                val stops = config.schedule[trip].orEmpty()
+                days.asSequence().filter { it in planned.dates }.flatMap { day ->
+                    val midnight = serviceDayStart(day) ?: return@flatMap emptySequence()
+                    stops.asSequence().map { Candidate(trip, planned.line, day, it, midnight + it.secondsOfDay, 0) }
+                }
+            }
+    }
+
+    private class Candidate(
+        val tripId: String, val line: String, val serviceDay: String, val stop: ScheduledStop, val time: Long, val delay: Int,
+    )
+
+    /** "20261120" (heure belge). */
+    private fun serviceDate(epochSec: Long): String = Calendar.getInstance(BRUSSELS).run {
+        timeInMillis = epochSec * 1000
+        "%04d%02d%02d".format(get(Calendar.YEAR), get(Calendar.MONTH) + 1, get(Calendar.DAY_OF_MONTH))
+    }
 
     /** "L0004-19058" → "4" ; tram "L1000-23082" → "T1" (route_short_name du GTFS TEC). */
     private fun lineNumber(routeId: String): String {

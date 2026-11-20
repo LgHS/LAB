@@ -7,6 +7,9 @@ Extrait du GTFS TEC ce dont le tableau de bord a besoin pour les quais de dashbo
   l'app en a besoin pour calculer l'heure réelle.
 - dashboard/tec_last_trips.csv : pour chaque jour de service, la dernière course de chaque
   ligne à chaque quai (pour afficher « dernier »).
+- dashboard/tec_planned_trips.csv et tec_services.csv : courses de tram (route_type 0) à nos
+  quais, avec leurs jours de circulation. Le flux temps réel TEC ne publie le tram que par
+  moments : l'app l'affiche à l'horaire théorique.
 - dashboard/generated.json : version (début/fin du GTFS + quais). Ne change que si le GTFS
   ou les quais changent : l'app ne retélécharge les CSV que dans ce cas.
 
@@ -32,6 +35,11 @@ CONFIG = OUT_DIR / "transport.json"
 SCHEDULE = OUT_DIR / "tec_schedule.csv"
 LAST_TRIPS = OUT_DIR / "tec_last_trips.csv"
 GENERATED = OUT_DIR / "generated.json"
+PLANNED_TRIPS = OUT_DIR / "tec_planned_trips.csv"
+SERVICES = OUT_DIR / "tec_services.csv"
+# Version des fichiers produits : la changer force l'app à tout retélécharger
+FORMAT = 2
+TRAM = "0"  # route_type GTFS
 GTFS_URL = "https://opendata.tec-wl.be/Current%20GTFS/TEC-GTFS.zip"
 # Cloudflare (opendata.tec-wl.be) refuse le User-Agent par défaut de Python (403)
 USER_AGENT = "LittleAndroidBrother/1.0 (+https://github.com/LgHS/LAB)"
@@ -78,8 +86,15 @@ else:
 with zipfile.ZipFile(io.BytesIO(data)) as z:
     feed_start = next(rows(z, "feed_info.txt")).get("feed_start_date", "")
     feed_end = max(r["end_date"] for r in rows(z, "calendar.txt"))
-    line_of_route = {r["route_id"]: r["route_short_name"] for r in rows(z, "routes.txt")}
-    trips = {r["trip_id"]: (line_of_route[r["route_id"]], r["service_id"]) for r in rows(z, "trips.txt")}
+    routes = list(rows(z, "routes.txt"))
+    line_of_route = {r["route_id"]: r["route_short_name"] for r in routes}
+    tram_routes = {r["route_id"] for r in routes if r["route_type"] == TRAM}
+    trips = {}
+    tram_trips = set()
+    for r in rows(z, "trips.txt"):
+        trips[r["trip_id"]] = (line_of_route[r["route_id"]], r["service_id"])
+        if r["route_id"] in tram_routes:
+            tram_trips.add(r["trip_id"])
     service_dates = active_dates(z)
 
     # trip_id → [(stop_id, séquence, secondes depuis minuit du jour de service)]
@@ -116,12 +131,25 @@ with open(LAST_TRIPS, "w", encoding="utf-8") as out:
     for (day, stop, _), (_, trip) in sorted(last.items()):
         out.write(f"{day:%Y%m%d},{trip},{stop}\n")
 
+# Tram : courses à nos quais (ligne, service) et dates de chaque service
+planned = sorted(t for t in schedule if t in tram_trips)
+with open(PLANNED_TRIPS, "w", encoding="utf-8") as out:
+    out.write(f"# valid_until={feed_end}\n")
+    for trip in planned:
+        line, service = trips[trip]
+        out.write(f"{trip},{line},{service}\n")
+with open(SERVICES, "w", encoding="utf-8") as out:
+    out.write(f"# valid_until={feed_end}\n")
+    for service in sorted({trips[t][1] for t in planned}):
+        out.write(f"{service},{' '.join(sorted(f'{d:%Y%m%d}' for d in service_dates.get(service, ())))}\n")
+
 GENERATED.write_text(json.dumps({
+    "format": FORMAT,
     "gtfsStart": feed_start,
     "validUntil": feed_end,
     "stops": sorted(stops),
 }, indent=2) + "\n", encoding="utf-8")
 
-for path, n in ((SCHEDULE, count), (LAST_TRIPS, len(last))):
+for path, n in ((SCHEDULE, count), (LAST_TRIPS, len(last)), (PLANNED_TRIPS, len(planned))):
     print(f"{path.relative_to(ROOT)} : {n} lignes, {path.stat().st_size // 1024} Ko")
 print(f"Valide jusqu'au {feed_end}")

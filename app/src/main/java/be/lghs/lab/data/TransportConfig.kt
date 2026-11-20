@@ -23,6 +23,9 @@ data class TrainRoute(val from: String, val to: String)
 
 class ScheduledStop(val stopId: String, val sequence: Int, val secondsOfDay: Int)
 
+/** Course de tram : [line] et jours de service ("20261120") où elle circule. */
+class PlannedTrip(val line: String, val dates: Set<String>)
+
 /**
  * Ce qu'affiche le panneau transports : dashboard/transport.json (édité à la main sur GitHub)
  * et les horaires TEC que la GitHub Action en dérive.
@@ -36,6 +39,8 @@ class TransportConfig(
     val schedule: Map<String, List<ScheduledStop>>,
     /** "20260925|tripId|stopId" des dernières courses de chaque jour. */
     val lastTrips: Set<String>,
+    /** trip_id → courses de tram, affichées à l'horaire théorique (absentes du temps réel). */
+    val plannedTrips: Map<String, PlannedTrip> = emptyMap(),
 )
 
 /**
@@ -80,7 +85,7 @@ class TransportConfigRepository(context: Context) {
         val staging = File(cacheDir.parentFile, "transport.new").apply { deleteRecursively(); mkdirs() }
         File(staging, TRANSPORT).writeText(transport)
         File(staging, GENERATED).writeText(generated)
-        for (csv in listOf(SCHEDULE, LAST_TRIPS)) {
+        for (csv in listOf(SCHEDULE, LAST_TRIPS, PLANNED_TRIPS, SERVICES)) {
             val target = File(staging, csv)
             if (generated == loadedGenerated && File(cacheDir, csv).exists()) {
                 File(cacheDir, csv).copyTo(target)
@@ -137,6 +142,18 @@ class TransportConfigRepository(context: Context) {
             lines.filterNot { it.startsWith("#") || it.isBlank() }.map { it.replace(',', '|') }.toHashSet()
         }
 
+        // Fichiers ajoutés après coup : absents d'un ancien cache, on s'en passe
+        fun optionalLines(name: String): List<String> =
+            runCatching { open(name).bufferedReader().use { it.readLines() } }.getOrDefault(emptyList())
+                .filterNot { it.startsWith("#") || it.isBlank() }
+        val services = optionalLines(SERVICES).associate { line ->
+            line.substringBefore(',') to line.substringAfter(',').split(' ').toHashSet()
+        }
+        val plannedTrips = optionalLines(PLANNED_TRIPS).associate { line ->
+            val (trip, lineName, service) = line.split(',')
+            trip to PlannedTrip(lineName, services[service].orEmpty())
+        }
+
         val config = TransportConfig(
             tecWindowMinutes = tec.optInt("windowMinutes", 15),
             tecStops = stops,
@@ -144,6 +161,7 @@ class TransportConfigRepository(context: Context) {
             trainsPerRoute = sncb.optInt("departuresPerRoute", 3),
             schedule = schedule,
             lastTrips = lastTrips,
+            plannedTrips = plannedTrips,
         )
         return Triple(config, transportText, generatedText)
     }
@@ -154,5 +172,7 @@ class TransportConfigRepository(context: Context) {
         const val GENERATED = "generated.json"
         const val SCHEDULE = "tec_schedule.csv"
         const val LAST_TRIPS = "tec_last_trips.csv"
+        const val PLANNED_TRIPS = "tec_planned_trips.csv"
+        const val SERVICES = "tec_services.csv"
     }
 }

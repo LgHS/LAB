@@ -34,6 +34,7 @@ class TransportPanel(private val b: PanelTransportBinding, scope: LifecycleCorou
     private val text = ContextCompat.getColor(context, R.color.text)
     private val dim = ContextCompat.getColor(context, R.color.text_dim)
     private val tecColor = ContextCompat.getColor(context, R.color.tec)
+    private val tramColor = ContextCompat.getColor(context, R.color.tram)
     private val sncbColor = ContextCompat.getColor(context, R.color.sncb)
 
     /** Une ligne de la liste, bus ou train. */
@@ -135,7 +136,13 @@ class TransportPanel(private val b: PanelTransportBinding, scope: LifecycleCorou
     private fun bind(row: Row, nowSec: Long): View {
         val v = RowDepartureBinding.inflate(inflater, b.departureRows, false)
         v.line.text = row.line
-        v.line.backgroundTintList = android.content.res.ColorStateList.valueOf(if (row.isTrain) sncbColor else tecColor)
+        // Tram TEC (T1…) en orange, pour le distinguer des bus jaunes
+        val badge = when {
+            row.isTrain -> sncbColor
+            row.line.startsWith("T") -> tramColor
+            else -> tecColor
+        }
+        v.line.backgroundTintList = android.content.res.ColorStateList.valueOf(badge)
         v.line.setTextColor(if (row.isTrain) 0xFFFFFFFF.toInt() else 0xFF111111.toInt())
         v.destination.text = row.destination
         v.last.visibility = if (row.last) View.VISIBLE else View.GONE

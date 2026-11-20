@@ -102,6 +102,8 @@ GitHub. L'app le relit au démarrage puis toutes les heures, sans réinstallatio
   à ce quai → libellé de destination ; une ligne absente n'est pas affichée. Ordre = priorité :
   un bus passant par plusieurs quais est affiché au premier où sa ligne est listée.
   Tram : quais `L1T…`/`L2T…` (un par sens), ligne `T1` (ex. `L2Tcurt2`, Curtius → Coronmeuse).
+  Le temps réel TEC ne publie le tram que par moments : il est affiché à l'horaire théorique
+  (`tec_planned_trips.csv` et `tec_services.csv`, générés eux aussi par l'Action).
 - `sncb.routes` : trains directs entre deux gares (noms
   [iRail](https://api.irail.be/stations/?format=json&lang=fr)).
 
