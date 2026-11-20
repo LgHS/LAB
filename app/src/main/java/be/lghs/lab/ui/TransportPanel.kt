@@ -76,6 +76,11 @@ class TransportPanel(private val b: PanelTransportBinding, scope: LifecycleCorou
 
     /** Nombre de vues de la liste « originale » (avant le repère et la copie). */
     private var listLength = 0
+
+    /** Vues de ligne réutilisées d'un rafraîchissement à l'autre. */
+    private val rowViews = mutableListOf<RowDepartureBinding>()
+    private var shownRows = -1
+    private var shownMessages: List<String> = emptyList()
     private var looping = false
 
     init {
@@ -144,10 +149,13 @@ class TransportPanel(private val b: PanelTransportBinding, scope: LifecycleCorou
      * Recalcule la liste (minutes restantes comprises) sans refaire de requête.
      * Pour le défilement infini, la liste est suivie d'un repère « début de la liste »
      * puis d'une seconde copie, visibles seulement si la liste dépasse.
+     *
+     * Les vues de ligne sont gardées et seulement remises à jour : tout recréer toutes les
+     * 10 s (une quarantaine de lignes avec la copie) bloquait l'écran 150 à 230 ms sur la box.
+     * La liste n'est réassemblée que si le nombre de lignes ou les messages changent.
      */
     fun render(nowSec: Long) {
         val container = b.departureRows
-        container.removeAllViews()
         val rows = ordered((buses + trains)
             .filter { it.epochSec >= nowSec - 30 }
             // Départs qu'on n'a plus le temps d'attraper depuis le space : masqués
@@ -155,17 +163,25 @@ class TransportPanel(private val b: PanelTransportBinding, scope: LifecycleCorou
             .sortedBy { it.epochSec })
         val messages = listOfNotNull(busError, trainError)
             .ifEmpty { if (rows.isEmpty()) listOf("Aucun départ") else emptyList() }
-        fun addList() {
-            rows.forEach { (row, replacement) -> container.addView(bind(row, nowSec, replacement)) }
-            messages.forEach { container.addView(placeholder(it)) }
+        // Lignes de la liste puis lignes de la copie : rowViews[i] et rowViews[rows.size + i]
+        val copies = if (rows.isEmpty()) 1 else 2
+        while (rowViews.size < rows.size * copies) rowViews += RowDepartureBinding.inflate(inflater, container, false)
+        if (rows.size != shownRows || messages != shownMessages) {
+            container.removeAllViews()
+            for (copy in 0 until copies) {
+                if (copy == 1) container.addView(loopMarker())
+                rows.indices.forEach { container.addView(rowViews[copy * rows.size + it].root) }
+                messages.forEach { container.addView(placeholder(it)) }
+                if (copy == 0) listLength = container.childCount
+            }
+            shownRows = rows.size
+            shownMessages = messages
+            for (i in 0 until listLength) container.getChildAt(i).visibility = View.VISIBLE
+            applyLoopVisibility()
         }
-        addList()
-        listLength = container.childCount
-        if (rows.isNotEmpty()) {
-            container.addView(loopMarker())
-            addList()
+        for (copy in 0 until copies) {
+            rows.forEachIndexed { i, (row, replacement) -> bind(rowViews[copy * rows.size + i], row, nowSec, replacement) }
         }
-        applyLoopVisibility()
     }
 
     /**
@@ -190,14 +206,13 @@ class TransportPanel(private val b: PanelTransportBinding, scope: LifecycleCorou
         }
     }
 
-    private fun bind(row: Row, nowSec: Long, replacement: Boolean = false): View {
-        val v = RowDepartureBinding.inflate(inflater, b.departureRows, false)
+    /** Remet une vue de ligne (peut-être déjà utilisée pour un autre départ) à l'état de [row]. */
+    private fun bind(v: RowDepartureBinding, row: Row, nowSec: Long, replacement: Boolean) {
         // Train suivant d'un train supprimé : « ↳ » et léger retrait, sous la ligne barrée
-        if (replacement) {
-            v.replaces.visibility = View.VISIBLE
-            v.root.setPaddingRelative((REPLACEMENT_INDENT_DP * context.resources.displayMetrics.density).toInt(), 0, 0, 0)
-        }
-        v.line.text = row.line
+        v.replaces.visibility = if (replacement) View.VISIBLE else View.GONE
+        val indent = if (replacement) (REPLACEMENT_INDENT_DP * context.resources.displayMetrics.density).toInt() else 0
+        if (v.root.paddingStart != indent) v.root.setPaddingRelative(indent, 0, 0, 0)
+        v.line.update(row.line)
         // Tram TEC (T1…) en orange, pour le distinguer des bus jaunes
         val badge = when {
             row.isTrain -> sncbColor
@@ -206,25 +221,25 @@ class TransportPanel(private val b: PanelTransportBinding, scope: LifecycleCorou
         }
         v.line.backgroundTintList = android.content.res.ColorStateList.valueOf(badge)
         v.line.setTextColor(if (row.isTrain) 0xFFFFFFFF.toInt() else 0xFF111111.toInt())
-        v.destination.text = row.destination
+        v.destination.update(row.destination)
         v.last.visibility = if (row.last) View.VISIBLE else View.GONE
 
         val delayMin = (row.delaySec / 60.0).roundToInt()
-        v.detail.text = SpannableStringBuilder(row.detail).apply {
+        v.detail.update(SpannableStringBuilder(row.detail).apply {
             when {
                 row.canceled -> inSpans(ForegroundColorSpan(late)) { append(" supprimé") }
                 delayMin >= 1 -> inSpans(ForegroundColorSpan(late)) { append(" +$delayMin'") }
             }
-        }
+        })
 
         val minutes = ((row.epochSec - nowSec) / 60.0).roundToInt()
-        v.time.text = when {
+        v.time.update(when {
             minutes <= 0 -> "à quai"
             minutes < 60 -> "$minutes min"
             else -> "%d h %02d".format(minutes / 60, minutes % 60)
-        }
+        })
         // Heure de départ réelle (retard compris), toujours affichée
-        v.clock.text = hhmm.format(Date(row.epochSec * 1000))
+        v.clock.update(hhmm.format(Date(row.epochSec * 1000)))
         // Avec le temps pour y aller : jaune s'il faut partir maintenant, vert sinon (ceux qu'on
         // ne peut plus attraper sont masqués, le rouge ne sert qu'entre deux rafraîchissements)
         val reach = reach(row.epochSec, nowSec, row.minutesFromSpace)
@@ -243,13 +258,21 @@ class TransportPanel(private val b: PanelTransportBinding, scope: LifecycleCorou
             v.travelMode.setImageResource(if (row.travelMode == TravelMode.BIKE) R.drawable.ic_bike else R.drawable.ic_walk)
             v.travelMode.imageTintList = android.content.res.ColorStateList.valueOf(v.time.currentTextColor)
             v.travelMode.visibility = View.VISIBLE
+        } else {
+            v.travelMode.visibility = View.GONE
         }
-        if (row.canceled) {
-            v.time.paintFlags = v.time.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG
-            v.clock.paintFlags = v.clock.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG
-            v.destination.alpha = 0.5f
-        }
-        return v.root
+        v.time.strikeThrough(row.canceled)
+        v.clock.strikeThrough(row.canceled)
+        v.destination.alpha = if (row.canceled) 0.5f else 1f
+    }
+
+    /** Ne touche au texte que s'il change : setText relance la mise en page de la ligne. */
+    private fun TextView.update(value: CharSequence) {
+        if (text.toString() != value.toString()) text = value
+    }
+
+    private fun TextView.strikeThrough(on: Boolean) {
+        paintFlags = if (on) paintFlags or Paint.STRIKE_THRU_TEXT_FLAG else paintFlags and Paint.STRIKE_THRU_TEXT_FLAG.inv()
     }
 
     /**
